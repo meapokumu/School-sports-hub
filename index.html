@@ -1,23 +1,382 @@
+```html
 <!DOCTYPE html>
-<html>
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title>School-Project</title>
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="">
-    </head>
-    <body>
-        <div id="container">
-            <h1>Welcome to my school project</h1>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>School Soccer</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        form {
+            display: grid;
+            gap: 12px;
+        }
+
+        input,
+        textarea,
+        button {
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        button {
+            background: #222;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #444;
+        }
+
+        .itinerary-item {
+            background: #f7f7f7;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 8px;
+            border-left: 5px solid #222;
+        }
+
+        .teams {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .team {
+            flex: 1;
+            background: #f7f7f7;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .score {
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .team button {
+            margin-top: 5px;
+        }
+
+        .rotation {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>School Soccer</h1>
+
+    <!-- ITINERARY -->
+    <h2>Add Itinerary Item</h2>
+
+    <form id="itineraryForm">
+
+        <input
+            type="text"
+            id="day"
+            placeholder="Day"
+            required
+        >
+
+        <input
+            type="date"
+            id="date"
+            required
+        >
+
+        <input
+            type="time"
+            id="time"
+            required
+        >
+
+        <input
+            type="text"
+            id="activity"
+            placeholder="Activity"
+            required
+        >
+
+        <input
+            type="text"
+            id="location"
+            placeholder="Location"
+            required
+        >
+
+        <input
+            type="text"
+            id="coach"
+            placeholder="Coach"
+            required
+        >
+
+        <textarea
+            id="notes"
+            placeholder="Notes"
+        ></textarea>
+
+        <button type="submit">
+            Add Itinerary Item
+        </button>
+
+    </form>
+
+
+    <!-- DISPLAY ITINERARY -->
+    <h2>School Soccer Itinerary</h2>
+
+    <div id="itineraryList"></div>
+
+
+    <!-- TEAMS -->
+    <h2>Teams</h2>
+
+    <div class="teams">
+
+        <div class="team">
+            <h3 id="teamAName">Team A</h3>
+
+            <p>Players:</p>
+
+            <ul id="teamAPlayers">
+                <li>Player 1</li>
+                <li>Player 2</li>
+                <li>Player 3</li>
+            </ul>
+
+            <p class="score" id="teamAScore">0</p>
+
+            <button onclick="updateScore(0, 1)">
+                +1 Point
+            </button>
+
+            <button onclick="updateScore(0, -1)">
+                -1 Point
+            </button>
         </div>
-        <script>
-            function killself(){
-                alert("self killed");
-            }
-        </script>
-        <button onclick="killself()">Use this button to kill self</button>
-        <h1>HI</h1>
-    </body>
+
+
+        <div class="team">
+            <h3 id="teamBName">Team B</h3>
+
+            <p>Players:</p>
+
+            <ul id="teamBPlayers">
+                <li>Player 4</li>
+                <li>Player 5</li>
+                <li>Player 6</li>
+            </ul>
+
+            <p class="score" id="teamBScore">0</p>
+
+            <button onclick="updateScore(1, 1)">
+                +1 Point
+            </button>
+
+            <button onclick="updateScore(1, -1)">
+                -1 Point
+            </button>
+        </div>
+
+    </div>
+
+
+    <button class="rotation" onclick="teamRotation()">
+        Rotate Teams
+    </button>
+
+</div>
+
+
+<script>
+
+    // -----------------------------
+    // DATA
+    // -----------------------------
+
+    let Teams = ["Team A", "Team B"];
+
+    let Scores = [0, 0];
+
+    let players = {
+        "Team A": ["Player 1", "Player 2", "Player 3"],
+        "Team B": ["Player 4", "Player 5", "Player 6"]
+    };
+
+    let school_soccer_itinerary = [];
+
+
+    // -----------------------------
+    // ADD ITINERARY ITEM
+    // -----------------------------
+
+    document
+        .getElementById("itineraryForm")
+        .addEventListener("submit", function(event) {
+
+            // Prevent the page from refreshing
+            event.preventDefault();
+
+            let item = {
+                day: document.getElementById("day").value,
+                date: document.getElementById("date").value,
+                time: document.getElementById("time").value,
+                activity: document.getElementById("activity").value,
+                location: document.getElementById("location").value,
+                coach: document.getElementById("coach").value,
+                notes: document.getElementById("notes").value
+            };
+
+            school_soccer_itinerary.push(item);
+
+            // Show the itinerary
+            showItinerary();
+
+            // Clear the form
+            document.getElementById("itineraryForm").reset();
+        });
+
+
+    // -----------------------------
+    // SHOW ITINERARY
+    // -----------------------------
+
+    function showItinerary() {
+
+        let list = document.getElementById("itineraryList");
+
+        // Clear the existing display
+        list.innerHTML = "";
+
+        school_soccer_itinerary.forEach(function(item) {
+
+            let div = document.createElement("div");
+
+            div.className = "itinerary-item";
+
+            div.innerHTML = `
+                <strong>
+                    ${item.day} ${item.date}
+                </strong>
+
+                <br>
+
+                ${item.time} |
+                ${item.activity} |
+                ${item.location}
+
+                <br>
+
+                Coach: ${item.coach}
+
+                <br>
+
+                <strong>Notes:</strong>
+                ${item.notes}
+            `;
+
+            list.appendChild(div);
+        });
+    }
+
+
+    // -----------------------------
+    // UPDATE SCORE
+    // -----------------------------
+
+    function updateScore(teamIndex, points) {
+
+        Scores[teamIndex] += points;
+
+        // Don't allow negative scores
+        if (Scores[teamIndex] < 0) {
+            Scores[teamIndex] = 0;
+        }
+
+        document.getElementById("teamAScore").textContent = Scores[0];
+
+        document.getElementById("teamBScore").textContent = Scores[1];
+    }
+
+
+    // -----------------------------
+    // ROTATE TEAMS
+    // -----------------------------
+
+    function teamRotation() {
+
+        // Same idea as:
+        // Teams = Teams[1:] + Teams[:1]
+
+        Teams = Teams.slice(1).concat(Teams.slice(0, 1));
+
+        updateTeams();
+    }
+
+
+    // -----------------------------
+    // UPDATE TEAM DISPLAY
+    // -----------------------------
+
+    function updateTeams() {
+
+        document.getElementById("teamAName").textContent = Teams[0];
+
+        document.getElementById("teamBName").textContent = Teams[1];
+
+
+        // Get players belonging to each team
+        let teamAPlayers = players[Teams[0]];
+
+        let teamBPlayers = players[Teams[1]];
+
+
+        // Update player lists
+        document.getElementById("teamAPlayers").innerHTML =
+            teamAPlayers.map(player => `<li>${player}</li>`).join("");
+
+
+        document.getElementById("teamBPlayers").innerHTML =
+            teamBPlayers.map(player => `<li>${player}</li>`).join("");
+    }
+
+</script>
+
+</body>
 </html>
+```
