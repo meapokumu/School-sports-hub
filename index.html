@@ -206,10 +206,15 @@
 
     <div class="teams" id="teamsDisplay"></div>
 
-    <button class="rotation" onclick="teamRotation()">
-        Rotate Teams
+    <button class="rotation" onclick="randomizeMatchups()">
+        Randomize Matchups
     </button>
+    
+    <div id="matchups"></div>
 
+    <button onclick="deleteTeam($,{index})">
+    Delete Team
+    </button>
 </div>
 
 
@@ -364,23 +369,65 @@
         });
     }
 
+    function deleteTeam(teamIndex) {
 
+        let teamName = Teams[teamIndex];
+
+        // Remove the team
+        Teams.splice(teamIndex, 1);
+
+        // Remove the score
+        Scores.splice(teamIndex, 1);
+
+        // Remove the players
+        delete players[teamName];
+
+        updateTeams();
+    }
     // -----------------------------
     // ROTATE TEAMS
     // -----------------------------
 
-    function teamRotation() {
+    function randomizeMatchups() {
 
-        // Same idea as:
-        // Teams = Teams[1:] + Teams[:1]
+        // Make a copy so we don't change the actual Teams array
+        let shuffledTeams = [...Teams];
 
-        Teams = Teams.slice(1).concat(Teams.slice(0, 1));
-        Scores = Scores.slice(1).concat(Scores.slice(0, 1));
+        // Shuffle the teams randomly
+        shuffledTeams.sort(() => Math.random() - 0.5);
+
+        let matchups = document.getElementById("matchups");
+
+        matchups.innerHTML = "<h2>Matchups</h2>";
+
+        for (let i = 0; i < shuffledTeams.length; i += 2) {
+
+            let matchup = document.createElement("div");
+            matchup.className = "itinerary-item";
+
+            if (shuffledTeams[i + 1]) {
+                matchup.innerHTML = `
+                    <strong>
+                        ${shuffledTeams[i]} vs ${shuffledTeams[i + 1]}
+                    </strong>
+                `;
+            } else {
+                matchup.innerHTML = `
+                    <strong>
+                        ${shuffledTeams[i]} has a BYE
+                    </strong>
+                `;
+            }
+
+            matchups.appendChild(matchup);
+        }
+    }
+    function deletePlayer(teamName, playerIndex) {
+
+        players[teamName].splice(playerIndex, 1);
 
         updateTeams();
-    }
-
-
+}
     // -----------------------------
     // UPDATE TEAM DISPLAY
     // -----------------------------
@@ -402,7 +449,14 @@
                 <p>Players:</p>
 
                 <ul>
-                    ${teamPlayers.map(player => `<li>${player}</li>`).join("")}
+                    ${teamPlayers.map((player, playerIndex) => `
+                        <li>
+                            ${player}
+                            <button onclick="deletePlayer('${teamName}', ${playerIndex})">
+                                Delete
+                            </button>
+                        </li>
+                    `).join("")}
                 </ul>
 
                 <p class="score">${teamScore}</p>
