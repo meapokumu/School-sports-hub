@@ -65,14 +65,38 @@
             border-left: 5px solid #222;
         }
 
+        .team-controls {
+            display: grid;
+            gap: 12px;
+            margin-top: 20px;
+            padding: 20px;
+            background: #f7f7f7;
+            border-radius: 8px;
+        }
+
+        .team-controls form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .team-controls input,
+        .team-controls select {
+            flex: 1;
+            min-width: 180px;
+        }
+
         .teams {
             display: flex;
+            flex-wrap: wrap;
             gap: 20px;
             margin-top: 20px;
         }
 
         .team {
             flex: 1;
+            min-width: 260px;
             background: #f7f7f7;
             padding: 15px;
             border-radius: 8px;
@@ -166,55 +190,21 @@
     <!-- TEAMS -->
     <h2>Teams</h2>
 
-    <div class="teams">
+    <section class="team-controls">
+        <form id="teamForm">
+            <input type="text" id="teamName" placeholder="Team name" required>
+            <input type="text" id="teamPlayers" placeholder="Players separated by commas">
+            <button type="submit">Add Team</button>
+        </form>
 
-        <div class="team">
-            <h3 id="teamAName">Team A</h3>
+        <form id="playerForm">
+            <select id="teamSelect" required></select>
+            <input type="text" id="newPlayers" placeholder="Add players separated by commas" required>
+            <button type="submit">Add Players</button>
+        </form>
+    </section>
 
-            <p>Players:</p>
-
-            <ul id="teamAPlayers">
-                <li>Player 1</li>
-                <li>Player 2</li>
-                <li>Player 3</li>
-            </ul>
-
-            <p class="score" id="teamAScore">0</p>
-
-            <button onclick="updateScore(0, 1)">
-                +1 Point
-            </button>
-
-            <button onclick="updateScore(0, -1)">
-                -1 Point
-            </button>
-        </div>
-
-
-        <div class="team">
-            <h3 id="teamBName">Team B</h3>
-
-            <p>Players:</p>
-
-            <ul id="teamBPlayers">
-                <li>Player 4</li>
-                <li>Player 5</li>
-                <li>Player 6</li>
-            </ul>
-
-            <p class="score" id="teamBScore">0</p>
-
-            <button onclick="updateScore(1, 1)">
-                +1 Point
-            </button>
-
-            <button onclick="updateScore(1, -1)">
-                -1 Point
-            </button>
-        </div>
-
-    </div>
-
+    <div class="teams" id="teamsDisplay"></div>
 
     <button class="rotation" onclick="teamRotation()">
         Rotate Teams
@@ -239,6 +229,66 @@
     };
 
     let school_soccer_itinerary = [];
+
+
+    // -----------------------------
+    // ADD TEAMS AND PLAYERS
+    // -----------------------------
+
+    function normalizePlayerNames(input) {
+        return input
+            .split(",")
+            .map(name => name.trim())
+            .filter(name => name.length > 0);
+    }
+
+    function updateScore(teamIndex, points) {
+        Scores[teamIndex] += points;
+
+        if (Scores[teamIndex] < 0) {
+            Scores[teamIndex] = 0;
+        }
+
+        updateTeams();
+    }
+
+    document.getElementById("teamForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        let teamName = document.getElementById("teamName").value.trim();
+        let teamPlayers = normalizePlayerNames(document.getElementById("teamPlayers").value);
+
+        if (!teamName) {
+            return;
+        }
+
+        if (!players[teamName]) {
+            Teams.push(teamName);
+            players[teamName] = [];
+            Scores.push(0);
+        }
+
+        players[teamName] = players[teamName].concat(teamPlayers);
+
+        document.getElementById("teamForm").reset();
+        updateTeams();
+    });
+
+    document.getElementById("playerForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+
+        let teamName = document.getElementById("teamSelect").value;
+        let newPlayers = normalizePlayerNames(document.getElementById("newPlayers").value);
+
+        if (!teamName || newPlayers.length === 0) {
+            return;
+        }
+
+        players[teamName] = players[teamName].concat(newPlayers);
+
+        document.getElementById("playerForm").reset();
+        updateTeams();
+    });
 
 
     // -----------------------------
@@ -316,25 +366,6 @@
 
 
     // -----------------------------
-    // UPDATE SCORE
-    // -----------------------------
-
-    function updateScore(teamIndex, points) {
-
-        Scores[teamIndex] += points;
-
-        // Don't allow negative scores
-        if (Scores[teamIndex] < 0) {
-            Scores[teamIndex] = 0;
-        }
-
-        document.getElementById("teamAScore").textContent = Scores[0];
-
-        document.getElementById("teamBScore").textContent = Scores[1];
-    }
-
-
-    // -----------------------------
     // ROTATE TEAMS
     // -----------------------------
 
@@ -344,6 +375,7 @@
         // Teams = Teams[1:] + Teams[:1]
 
         Teams = Teams.slice(1).concat(Teams.slice(0, 1));
+        Scores = Scores.slice(1).concat(Scores.slice(0, 1));
 
         updateTeams();
     }
@@ -354,26 +386,44 @@
     // -----------------------------
 
     function updateTeams() {
+        let teamsDisplay = document.getElementById("teamsDisplay");
+        teamsDisplay.innerHTML = "";
 
-        document.getElementById("teamAName").textContent = Teams[0];
+        Teams.forEach(function(teamName, index) {
+            let teamDiv = document.createElement("div");
+            teamDiv.className = "team";
 
-        document.getElementById("teamBName").textContent = Teams[1];
+            let teamScore = Scores[index] || 0;
+            let teamPlayers = players[teamName] || [];
 
+            teamDiv.innerHTML = `
+                <h3>${teamName}</h3>
 
-        // Get players belonging to each team
-        let teamAPlayers = players[Teams[0]];
+                <p>Players:</p>
 
-        let teamBPlayers = players[Teams[1]];
+                <ul>
+                    ${teamPlayers.map(player => `<li>${player}</li>`).join("")}
+                </ul>
 
+                <p class="score">${teamScore}</p>
 
-        // Update player lists
-        document.getElementById("teamAPlayers").innerHTML =
-            teamAPlayers.map(player => `<li>${player}</li>`).join("");
+                <button onclick="updateScore(${index}, 1)">
+                    +1 Point
+                </button>
 
+                <button onclick="updateScore(${index}, -1)">
+                    -1 Point
+                </button>
+            `;
 
-        document.getElementById("teamBPlayers").innerHTML =
-            teamBPlayers.map(player => `<li>${player}</li>`).join("");
+            teamsDisplay.appendChild(teamDiv);
+        });
+
+        let teamSelect = document.getElementById("teamSelect");
+        teamSelect.innerHTML = Teams.map(team => `<option value="${team}">${team}</option>`).join("");
     }
+
+    updateTeams();
 
 </script>
 
