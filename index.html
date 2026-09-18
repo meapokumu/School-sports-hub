@@ -56,6 +56,31 @@
             background: #444;
         }
 
+        button:focus-visible,
+        input:focus-visible,
+        textarea:focus-visible,
+        select:focus-visible {
+            outline: 3px solid #4d90fe;
+            outline-offset: 2px;
+        }
+
+        button.danger {
+            background: #b42318;
+        }
+
+        button.danger:hover {
+            background: #8f1c13;
+        }
+
+        .empty-state {
+            color: #666;
+            text-align: center;
+            padding: 18px;
+            margin-top: 15px;
+            border: 1px dashed #bbb;
+            border-radius: 8px;
+        }
+
         .itinerary-item {
             background: #f7f7f7;
             padding: 15px;
@@ -109,6 +134,10 @@
 
         .team button {
             margin-top: 5px;
+        }
+
+        .matchup-actions {
+            margin-top: 12px;
         }
 
         .rotation {
@@ -393,9 +422,6 @@
     
     <div id="matchups"></div>
 
-    <button onclick="deleteTeam($,{index})">
-    Delete Team
-    </button>
 </div>
 
 
@@ -415,6 +441,7 @@
     };
 
     let school_soccer_itinerary = [];
+    let currentMatchups = [];
 
 
     // -----------------------------
@@ -519,6 +546,11 @@
         // Clear the existing display
         list.innerHTML = "";
 
+        if (school_soccer_itinerary.length === 0) {
+            list.innerHTML = '<p class="empty-state">No itinerary items yet.</p>';
+            return;
+        }
+
         school_soccer_itinerary.forEach(function(item) {
 
             let div = document.createElement("div");
@@ -552,7 +584,15 @@
 
     function deleteTeam(teamIndex) {
 
+        if (teamIndex < 0 || teamIndex >= Teams.length) {
+            return;
+        }
+
         let teamName = Teams[teamIndex];
+
+        if (!confirm(`Delete ${teamName} and all of its players?`)) {
+            return;
+        }
 
         // Remove the team
         Teams.splice(teamIndex, 1);
@@ -563,7 +603,13 @@
         // Remove the players
         delete players[teamName];
 
+        // Remove matchups that can no longer be played.
+        currentMatchups = currentMatchups.filter(matchup =>
+            matchup.home !== teamName && matchup.away !== teamName
+        );
+
         updateTeams();
+        renderMatchups();
     }
     // -----------------------------
     // ROTATE TEAMS
@@ -574,34 +620,68 @@
         // Make a copy so we don't change the actual Teams array
         let shuffledTeams = [...Teams];
 
+        currentMatchups = [];
+
         // Shuffle the teams randomly
         shuffledTeams.sort(() => Math.random() - 0.5);
 
-        let matchups = document.getElementById("matchups");
-
-        matchups.innerHTML = "<h2>Matchups</h2>";
-
         for (let i = 0; i < shuffledTeams.length; i += 2) {
-
-            let matchup = document.createElement("div");
-            matchup.className = "itinerary-item";
-
-            if (shuffledTeams[i + 1]) {
-                matchup.innerHTML = `
-                    <strong>
-                        ${shuffledTeams[i]} vs ${shuffledTeams[i + 1]}
-                    </strong>
-                `;
-            } else {
-                matchup.innerHTML = `
-                    <strong>
-                        ${shuffledTeams[i]} has a BYE
-                    </strong>
-                `;
-            }
-
-            matchups.appendChild(matchup);
+            currentMatchups.push({
+                home: shuffledTeams[i],
+                away: shuffledTeams[i + 1] || null
+            });
         }
+
+        renderMatchups();
+    }
+
+    function deleteMatchup(matchupIndex) {
+        if (matchupIndex < 0 || matchupIndex >= currentMatchups.length) {
+            return;
+        }
+
+        currentMatchups.splice(matchupIndex, 1);
+        renderMatchups();
+    }
+
+    function renderMatchups() {
+        let matchups = document.getElementById("matchups");
+        matchups.innerHTML = "";
+
+        if (currentMatchups.length === 0) {
+            matchups.innerHTML = '<p class="empty-state">No matchups yet. Randomize the teams to create one.</p>';
+            return;
+        }
+
+        let heading = document.createElement("h2");
+        heading.textContent = "Matchups";
+        matchups.appendChild(heading);
+
+        currentMatchups.forEach(function(matchup, index) {
+            let matchupDiv = document.createElement("div");
+            matchupDiv.className = "itinerary-item";
+
+            let title = document.createElement("strong");
+            title.textContent = matchup.away
+                ? `${matchup.home} vs ${matchup.away}`
+                : `${matchup.home} has a BYE`;
+            matchupDiv.appendChild(title);
+
+            let actions = document.createElement("div");
+            actions.className = "matchup-actions";
+
+            let deleteButton = document.createElement("button");
+            deleteButton.className = "danger";
+            deleteButton.type = "button";
+            deleteButton.textContent = "Delete Matchup";
+            deleteButton.addEventListener("click", function() {
+                deleteMatchup(index);
+            });
+
+            actions.appendChild(deleteButton);
+            matchupDiv.appendChild(actions);
+            matchups.appendChild(matchupDiv);
+        });
     }
     function deletePlayer(teamName, playerIndex) {
 
@@ -616,6 +696,10 @@
     function updateTeams() {
         let teamsDisplay = document.getElementById("teamsDisplay");
         teamsDisplay.innerHTML = "";
+
+        if (Teams.length === 0) {
+            teamsDisplay.innerHTML = '<p class="empty-state">No teams yet. Add a team above to get started.</p>';
+        }
 
         Teams.forEach(function(teamName, index) {
             let teamDiv = document.createElement("div");
@@ -649,6 +733,10 @@
                 <button onclick="updateScore(${index}, -1)">
                     -1 Point
                 </button>
+
+                <button class="danger" onclick="deleteTeam(${index})">
+                    Delete Team
+                </button>
             `;
 
             teamsDisplay.appendChild(teamDiv);
@@ -659,6 +747,7 @@
     }
 
     updateTeams();
+    renderMatchups();
 
 </script>
 
