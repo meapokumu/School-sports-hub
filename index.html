@@ -154,6 +154,148 @@
             text-decoration: line-through;
         }
 
+        .view-tabs {
+            display: flex;
+            gap: 8px;
+            margin: 22px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .view-tab {
+            flex: 1;
+            border-radius: 6px 6px 0 0;
+            background: #e8e8e8;
+            color: #222;
+        }
+
+        .view-tab.active {
+            background: #222;
+            color: white;
+        }
+
+        .view-panel[hidden] {
+            display: none;
+        }
+
+        .field-summary {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin: 18px 0;
+            padding: 14px;
+            background: #f7f7f7;
+            border-radius: 8px;
+        }
+
+        .field-summary strong {
+            font-size: 20px;
+        }
+
+        .soccer-field {
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            align-items: center;
+            min-height: 430px;
+            overflow: hidden;
+            border: 5px solid white;
+            border-radius: 12px;
+            background: repeating-linear-gradient(90deg, #287a43 0, #287a43 9%, #2f874b 9%, #2f874b 18%);
+            box-shadow: inset 0 0 0 2px #1d5c32, 0 4px 12px rgba(0, 0, 0, 0.15);
+            color: white;
+        }
+
+        .soccer-field::before {
+            content: "";
+            position: absolute;
+            inset: 0 50%;
+            border-left: 2px solid rgba(255, 255, 255, 0.85);
+        }
+
+        .soccer-field::after {
+            content: "";
+            position: absolute;
+            width: 110px;
+            height: 110px;
+            left: 50%;
+            top: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .field-side {
+            position: relative;
+            z-index: 1;
+            min-width: 0;
+            padding: 26px 18px;
+            text-align: center;
+        }
+
+        .field-side.home {
+            border-right: 1px solid rgba(255, 255, 255, 0.45);
+        }
+
+        .field-side.away {
+            border-left: 1px solid rgba(255, 255, 255, 0.45);
+        }
+
+        .field-label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 13px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .field-team-name {
+            display: block;
+            overflow-wrap: anywhere;
+            font-size: clamp(20px, 4vw, 34px);
+            font-weight: bold;
+        }
+
+        .field-score {
+            display: block;
+            margin-top: 12px;
+            font-size: clamp(46px, 9vw, 82px);
+            line-height: 1;
+            font-weight: bold;
+        }
+
+        .field-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .field-controls button {
+            min-width: 120px;
+        }
+
+        .field-queue {
+            display: grid;
+            gap: 8px;
+            margin-top: 18px;
+        }
+
+        .queue-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 6px;
+            background: #f7f7f7;
+        }
+
+        .queue-item.next {
+            border-left: 4px solid #16803c;
+            font-weight: bold;
+        }
+
         .itinerary-item {
             background: #f7f7f7;
             padding: 15px;
@@ -360,6 +502,20 @@
                 width: 100%;
             }
 
+            .soccer-field {
+                min-height: 320px;
+            }
+
+            .field-summary {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .queue-item {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
             /* Makes date/time controls easier to use on phones */
             input[type="date"],
             input[type="time"] {
@@ -428,6 +584,13 @@
         <button id="clearDataButton" class="danger" type="button">Clear All Data</button>
     </section>
     <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+
+    <nav class="view-tabs" aria-label="Dashboard views">
+        <button class="view-tab active" type="button" data-view="dashboardView" aria-selected="true">Manage</button>
+        <button class="view-tab" type="button" data-view="fieldView" aria-selected="false">Field View</button>
+    </nav>
+
+    <section id="dashboardView" class="view-panel">
 
     <!-- ITINERARY -->
     <h2>Itinerary</h2>
@@ -521,6 +684,16 @@
     </button>
     
     <div id="matchups"></div>
+
+    </section>
+
+    <section id="fieldView" class="view-panel" hidden>
+        <h2>Live Soccer Field</h2>
+        <div id="fieldSummary" class="field-summary"></div>
+        <div id="soccerField" class="soccer-field" aria-live="polite"></div>
+        <div id="fieldControls" class="field-controls"></div>
+        <div id="fieldQueue" class="field-queue"></div>
+    </section>
 
 </div>
 
@@ -869,14 +1042,74 @@
         });
     }
 
+    function renderField() {
+        let summary = document.getElementById("fieldSummary");
+        let field = document.getElementById("soccerField");
+        let controls = document.getElementById("fieldControls");
+        let queue = document.getElementById("fieldQueue");
+        let nextIndex = state.matchups.findIndex(matchup => !matchup.completed);
+        let displayIndex = nextIndex >= 0 ? nextIndex : state.matchups.length - 1;
+
+        summary.innerHTML = nextIndex >= 0
+            ? `<span>Next up</span><strong>Match ${nextIndex + 1} of ${state.matchups.length}</strong>`
+            : "<span>No upcoming matchups</span>";
+        field.innerHTML = "";
+        controls.innerHTML = "";
+        queue.innerHTML = "";
+
+        if (displayIndex < 0) {
+            field.innerHTML = '<p class="empty-state">Create a matchup or reopen a completed game to use the field view.</p>';
+            return;
+        }
+
+        let matchup = state.matchups[displayIndex];
+        let homeSide = document.createElement("div");
+        homeSide.className = "field-side home";
+        homeSide.innerHTML = `<span class="field-label">Home side</span><span class="field-team-name">${escapeHTML(matchup.home)}</span><span class="field-score">${matchup.homeScore || 0}</span>`;
+        field.appendChild(homeSide);
+
+        let awaySide = document.createElement("div");
+        awaySide.className = "field-side away";
+        awaySide.innerHTML = matchup.away
+            ? `<span class="field-label">Away side</span><span class="field-team-name">${escapeHTML(matchup.away)}</span><span class="field-score">${matchup.awayScore || 0}</span>`
+            : '<span class="field-label">Away side</span><span class="field-team-name">BYE</span><span class="field-score">-</span>';
+        field.appendChild(awaySide);
+
+        if (matchup.away) {
+            controls.innerHTML = `<button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen Match" : "Complete Match"}</button>`;
+            controls.children[0].addEventListener("click", () => updateMatchupScore(displayIndex, "home", 1));
+            controls.children[1].addEventListener("click", () => updateMatchupScore(displayIndex, "away", 1));
+            controls.children[2].addEventListener("click", () => toggleMatchup(displayIndex));
+        }
+
+        state.matchups.forEach((item, index) => {
+            let queueItem = document.createElement("div");
+            queueItem.className = `queue-item${index === nextIndex ? " next" : ""}`;
+            queueItem.innerHTML = `<span>${index === nextIndex ? "NEXT: " : ""}${escapeHTML(item.home)}${item.away ? ` vs ${escapeHTML(item.away)}` : " (BYE)"}</span><span>${item.homeScore || 0}${item.away ? ` - ${item.awayScore || 0}` : ""}${item.completed ? " | Complete" : ""}</span>`;
+            queue.appendChild(queueItem);
+        });
+    }
+
     function renderAll() {
         renderItinerary();
         renderTeams();
         renderMatchups();
+        renderField();
     }
 
     document.getElementById("teamSearch").addEventListener("input", renderTeams);
     document.getElementById("randomizeButton").addEventListener("click", randomizeMatchups);
+    document.querySelectorAll(".view-tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+            document.querySelectorAll(".view-tab").forEach(otherTab => {
+                let active = otherTab === tab;
+                otherTab.classList.toggle("active", active);
+                otherTab.setAttribute("aria-selected", active ? "true" : "false");
+                document.getElementById(otherTab.dataset.view).hidden = !active;
+            });
+            if (tab.dataset.view === "fieldView") renderField();
+        });
+    });
     document.getElementById("clearDataButton").addEventListener("click", () => {
         if (!confirm("Clear all teams, scores, players, itinerary, and matchups?")) return;
         state = {teams: [], scores: {}, players: {}, itinerary: [], matchups: []};
