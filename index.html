@@ -81,6 +81,79 @@
             border-radius: 8px;
         }
 
+        .status-message {
+            min-height: 22px;
+            margin: 12px 0 0;
+            color: #8f1c13;
+            font-weight: bold;
+        }
+
+        .season-tools,
+        .team-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        .season-tools button,
+        .team-filter input {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .season-tools input[type="file"] {
+            display: none;
+        }
+
+        .season-tools label {
+            flex: 1;
+            min-width: 160px;
+            padding: 10px;
+            border-radius: 6px;
+            background: #222;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .team-heading,
+        .matchup-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .team-heading h3,
+        .matchup-heading strong {
+            margin: 0;
+        }
+
+        .team-actions,
+        .matchup-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .team-actions button,
+        .matchup-actions button {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .completed {
+            opacity: 0.7;
+            border-left-color: #16803c;
+        }
+
+        .completed .matchup-heading strong {
+            text-decoration: line-through;
+        }
+
         .itinerary-item {
             background: #f7f7f7;
             padding: 15px;
@@ -216,6 +289,20 @@
                 width: 100%;
             }
 
+            .season-tools,
+            .team-filter {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .season-tools button,
+            .season-tools label,
+            .team-filter input {
+                width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
+            }
+
             .teams {
                 display: flex;
                 flex-direction: column;
@@ -334,6 +421,14 @@
 
     <h1>School Soccer</h1>
 
+    <section class="season-tools" aria-label="Season tools">
+        <button id="exportButton" type="button">Export Season</button>
+        <label for="importInput">Import Season</label>
+        <input id="importInput" type="file" accept="application/json">
+        <button id="clearDataButton" class="danger" type="button">Clear All Data</button>
+    </section>
+    <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
+
     <!-- ITINERARY -->
     <h2>Itinerary</h2>
 
@@ -384,9 +479,10 @@
             placeholder="Notes"
         ></textarea>
 
-        <button type="submit">
+        <button id="itinerarySubmit" type="submit">
             Add Itinerary Item
         </button>
+        <button id="itineraryCancel" type="button" hidden>Cancel Edit</button>
 
     </form>
 
@@ -416,7 +512,11 @@
 
     <div class="teams" id="teamsDisplay"></div>
 
-    <button class="rotation" onclick="randomizeMatchups()">
+    <div class="team-filter">
+        <input type="search" id="teamSearch" placeholder="Search teams or players" aria-label="Search teams or players">
+    </div>
+
+    <button class="rotation" id="randomizeButton" type="button">
         Randomize Matchups
     </button>
     
@@ -426,329 +526,391 @@
 
 
 <script>
+    const STORAGE_KEY = "school-soccer-season-v1";
+    let editingItineraryId = null;
+    let state = loadState();
 
-    // -----------------------------
-    // DATA
-    // -----------------------------
-
-    let Teams = ["Team A", "Team B"];
-
-    let Scores = [0, 0];
-
-    let players = {
-        "Team A": ["Player 1", "Player 2", "Player 3"],
-        "Team B": ["Player 4", "Player 5", "Player 6"]
-    };
-
-    let school_soccer_itinerary = [];
-    let currentMatchups = [];
-
-
-    // -----------------------------
-    // ADD TEAMS AND PLAYERS
-    // -----------------------------
-
-    function normalizePlayerNames(input) {
-        return input
-            .split(",")
-            .map(name => name.trim())
-            .filter(name => name.length > 0);
+    function defaultState() {
+        return {
+            teams: ["Team A", "Team B"],
+            scores: {"Team A": 0, "Team B": 0},
+            players: {
+                "Team A": ["Player 1", "Player 2", "Player 3"],
+                "Team B": ["Player 4", "Player 5", "Player 6"]
+            },
+            itinerary: [],
+            matchups: []
+        };
     }
 
-    function updateScore(teamIndex, points) {
-        Scores[teamIndex] += points;
-
-        if (Scores[teamIndex] < 0) {
-            Scores[teamIndex] = 0;
+    function loadState() {
+        try {
+            let saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            return normalizeState(saved || defaultState());
+        } catch (error) {
+            return defaultState();
         }
-
-        updateTeams();
     }
 
-    document.getElementById("teamForm").addEventListener("submit", function(event) {
-        event.preventDefault();
-
-        let teamName = document.getElementById("teamName").value.trim();
-        let teamPlayers = normalizePlayerNames(document.getElementById("teamPlayers").value);
-
-        if (!teamName) {
-            return;
+    function normalizeState(value) {
+        let fallback = defaultState();
+        if (!value || !Array.isArray(value.teams)) {
+            return fallback;
         }
 
-        if (!players[teamName]) {
-            Teams.push(teamName);
-            players[teamName] = [];
-            Scores.push(0);
-        }
-
-        players[teamName] = players[teamName].concat(teamPlayers);
-
-        document.getElementById("teamForm").reset();
-        updateTeams();
-    });
-
-    document.getElementById("playerForm").addEventListener("submit", function(event) {
-        event.preventDefault();
-
-        let teamName = document.getElementById("teamSelect").value;
-        let newPlayers = normalizePlayerNames(document.getElementById("newPlayers").value);
-
-        if (!teamName || newPlayers.length === 0) {
-            return;
-        }
-
-        players[teamName] = players[teamName].concat(newPlayers);
-
-        document.getElementById("playerForm").reset();
-        updateTeams();
-    });
-
-
-    // -----------------------------
-    // ADD ITINERARY ITEM
-    // -----------------------------
-
-    document
-        .getElementById("itineraryForm")
-        .addEventListener("submit", function(event) {
-
-            // Prevent the page from refreshing
-            event.preventDefault();
-
-            let item = {
-                day: document.getElementById("day").value,
-                date: document.getElementById("date").value,
-                time: document.getElementById("time").value,
-                activity: document.getElementById("activity").value,
-                location: document.getElementById("location").value,
-                coach: document.getElementById("coach").value,
-                notes: document.getElementById("notes").value
-            };
-
-            school_soccer_itinerary.push(item);
-
-            // Show the itinerary
-            showItinerary();
-
-            // Clear the form
-            document.getElementById("itineraryForm").reset();
+        let teams = value.teams.filter(team => typeof team === "string" && team.trim());
+        let scores = {};
+        let players = {};
+        teams.forEach(team => {
+            scores[team] = Number.isFinite(Number(value.scores?.[team])) ? Math.max(0, Number(value.scores[team])) : 0;
+            players[team] = Array.isArray(value.players?.[team])
+                ? value.players[team].filter(player => typeof player === "string" && player.trim())
+                : [];
         });
 
+        return {
+            teams,
+            scores,
+            players,
+            itinerary: Array.isArray(value.itinerary) ? value.itinerary.map(item => ({
+                id: item.id || `${Date.now()}-${Math.random()}`,
+                day: item.day || "",
+                date: item.date || "",
+                time: item.time || "",
+                activity: item.activity || "",
+                location: item.location || "",
+                coach: item.coach || "",
+                notes: item.notes || ""
+            })) : [],
+            matchups: Array.isArray(value.matchups) ? value.matchups
+                .filter(matchup => matchup && teams.includes(matchup.home))
+                .map(matchup => ({
+                    home: matchup.home,
+                    away: matchup.away && teams.includes(matchup.away) ? matchup.away : null,
+                    homeScore: Math.max(0, Number(matchup.homeScore) || 0),
+                    awayScore: Math.max(0, Number(matchup.awayScore) || 0),
+                    completed: Boolean(matchup.completed)
+                })) : []
+        };
+    }
 
-    // -----------------------------
-    // SHOW ITINERARY
-    // -----------------------------
+    function saveState() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
 
-    function showItinerary() {
+    function setStatus(message, isError = true) {
+        let status = document.getElementById("statusMessage");
+        status.textContent = message;
+        status.style.color = isError ? "#8f1c13" : "#16803c";
+        if (message) {
+            window.setTimeout(() => {
+                if (status.textContent === message) status.textContent = "";
+            }, 3500);
+        }
+    }
 
+    function normalizeNames(input) {
+        return input.split(",").map(name => name.trim()).filter(Boolean);
+    }
+
+    function hasName(list, name) {
+        return list.some(item => item.toLowerCase() === name.toLowerCase());
+    }
+
+    function escapeHTML(value) {
+        return String(value).replace(/[&<>'"]/g, character => ({
+            "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+        }[character]));
+    }
+
+    function commit(message) {
+        saveState();
+        renderAll();
+        if (message) setStatus(message, false);
+    }
+
+    document.getElementById("teamForm").addEventListener("submit", event => {
+        event.preventDefault();
+        let name = document.getElementById("teamName").value.trim();
+        let newPlayers = normalizeNames(document.getElementById("teamPlayers").value);
+        if (hasName(state.teams, name)) {
+            setStatus("That team name already exists.");
+            return;
+        }
+        state.teams.push(name);
+        state.scores[name] = 0;
+        state.players[name] = newPlayers;
+        event.target.reset();
+        commit(`${name} added.`);
+    });
+
+    document.getElementById("playerForm").addEventListener("submit", event => {
+        event.preventDefault();
+        let team = document.getElementById("teamSelect").value;
+        let additions = normalizeNames(document.getElementById("newPlayers").value);
+        let existing = state.players[team] || [];
+        let unique = additions.filter(player => !hasName(existing, player));
+        if (!team || unique.length === 0) {
+            setStatus("Choose a team and enter at least one new player.");
+            return;
+        }
+        state.players[team] = existing.concat(unique);
+        event.target.reset();
+        commit("Players added.");
+    });
+
+    document.getElementById("itineraryForm").addEventListener("submit", event => {
+        event.preventDefault();
+        let item = {
+            id: editingItineraryId || Date.now().toString(),
+            day: document.getElementById("day").value.trim(),
+            date: document.getElementById("date").value,
+            time: document.getElementById("time").value,
+            activity: document.getElementById("activity").value.trim(),
+            location: document.getElementById("location").value.trim(),
+            coach: document.getElementById("coach").value.trim(),
+            notes: document.getElementById("notes").value.trim()
+        };
+        let existingIndex = state.itinerary.findIndex(entry => entry.id === editingItineraryId);
+        if (existingIndex >= 0) state.itinerary[existingIndex] = item;
+        else state.itinerary.push(item);
+        resetItineraryForm();
+        commit(existingIndex >= 0 ? "Itinerary item updated." : "Itinerary item added.");
+    });
+
+    document.getElementById("itineraryCancel").addEventListener("click", resetItineraryForm);
+
+    function resetItineraryForm() {
+        editingItineraryId = null;
+        document.getElementById("itineraryForm").reset();
+        document.getElementById("itinerarySubmit").textContent = "Add Itinerary Item";
+        document.getElementById("itineraryCancel").hidden = true;
+    }
+
+    function editItinerary(id) {
+        let item = state.itinerary.find(entry => entry.id === id);
+        if (!item) return;
+        editingItineraryId = id;
+        Object.keys(item).forEach(key => {
+            let field = document.getElementById(key);
+            if (field) field.value = item[key] || "";
+        });
+        document.getElementById("itinerarySubmit").textContent = "Save Itinerary Changes";
+        document.getElementById("itineraryCancel").hidden = false;
+        document.getElementById("day").focus();
+    }
+
+    function deleteItinerary(id) {
+        if (!confirm("Delete this itinerary item?")) return;
+        state.itinerary = state.itinerary.filter(item => item.id !== id);
+        commit("Itinerary item deleted.");
+    }
+
+    function updateScore(team, points) {
+        state.scores[team] = Math.max(0, (state.scores[team] || 0) + points);
+        commit();
+    }
+
+    function renameTeam(team) {
+        let newName = prompt("New team name:", team)?.trim();
+        if (!newName || newName === team) return;
+        if (hasName(state.teams.filter(item => item !== team), newName)) {
+            setStatus("That team name already exists.");
+            return;
+        }
+        let index = state.teams.indexOf(team);
+        state.teams[index] = newName;
+        state.scores[newName] = state.scores[team] || 0;
+        state.players[newName] = state.players[team] || [];
+        delete state.scores[team];
+        delete state.players[team];
+        state.matchups.forEach(matchup => {
+            if (matchup.home === team) matchup.home = newName;
+            if (matchup.away === team) matchup.away = newName;
+        });
+        commit(`${newName} renamed.`);
+    }
+
+    function deleteTeam(team) {
+        if (!confirm(`Delete ${team} and all of its players?`)) return;
+        state.teams = state.teams.filter(item => item !== team);
+        delete state.scores[team];
+        delete state.players[team];
+        state.matchups = state.matchups.filter(matchup => matchup.home !== team && matchup.away !== team);
+        commit(`${team} deleted.`);
+    }
+
+    function deletePlayer(team, playerIndex) {
+        state.players[team].splice(playerIndex, 1);
+        commit("Player deleted.");
+    }
+
+    function randomizeMatchups() {
+        let shuffled = [...state.teams].sort(() => Math.random() - 0.5);
+        state.matchups = [];
+        for (let index = 0; index < shuffled.length; index += 2) {
+            state.matchups.push({home: shuffled[index], away: shuffled[index + 1] || null, homeScore: 0, awayScore: 0, completed: false});
+        }
+        commit("New matchups created.");
+    }
+
+    function updateMatchupScore(index, side, points) {
+        let matchup = state.matchups[index];
+        let key = side === "home" ? "homeScore" : "awayScore";
+        matchup[key] = Math.max(0, (matchup[key] || 0) + points);
+        commit();
+    }
+
+    function toggleMatchup(index) {
+        state.matchups[index].completed = !state.matchups[index].completed;
+        commit();
+    }
+
+    function deleteMatchup(index) {
+        state.matchups.splice(index, 1);
+        commit("Matchup deleted.");
+    }
+
+    function renderItinerary() {
         let list = document.getElementById("itineraryList");
-
-        // Clear the existing display
         list.innerHTML = "";
-
-        if (school_soccer_itinerary.length === 0) {
+        let entries = [...state.itinerary].sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+        if (entries.length === 0) {
             list.innerHTML = '<p class="empty-state">No itinerary items yet.</p>';
             return;
         }
-
-        school_soccer_itinerary.forEach(function(item) {
-
+        entries.forEach(item => {
             let div = document.createElement("div");
-
             div.className = "itinerary-item";
-
-            div.innerHTML = `
-                <strong>
-                    ${item.day} ${item.date}
-                </strong>
-
-                <br>
-
-                ${item.time} |
-                ${item.activity} |
-                ${item.location}
-
-                <br>
-
-                Coach: ${item.coach}
-
-                <br>
-
-                <strong>Notes:</strong>
-                ${item.notes}
-            `;
-
+            div.innerHTML = `<strong>${escapeHTML(item.day)} ${escapeHTML(item.date)}</strong><br>${escapeHTML(item.time)} | ${escapeHTML(item.activity)} | ${escapeHTML(item.location)}<br>Coach: ${escapeHTML(item.coach)}<br><strong>Notes:</strong> ${escapeHTML(item.notes || "None")}`;
+            let actions = document.createElement("div");
+            actions.className = "matchup-actions";
+            actions.innerHTML = `<button type="button">Edit</button><button type="button" class="danger">Delete</button>`;
+            actions.children[0].addEventListener("click", () => editItinerary(item.id));
+            actions.children[1].addEventListener("click", () => deleteItinerary(item.id));
+            div.appendChild(actions);
             list.appendChild(div);
         });
     }
 
-    function deleteTeam(teamIndex) {
-
-        if (teamIndex < 0 || teamIndex >= Teams.length) {
-            return;
+    function renderTeams() {
+        let display = document.getElementById("teamsDisplay");
+        let query = document.getElementById("teamSearch").value.trim().toLowerCase();
+        display.innerHTML = "";
+        let visibleTeams = state.teams.filter(team => team.toLowerCase().includes(query) || (state.players[team] || []).some(player => player.toLowerCase().includes(query)));
+        if (visibleTeams.length === 0) {
+            display.innerHTML = '<p class="empty-state">No matching teams.</p>';
         }
-
-        let teamName = Teams[teamIndex];
-
-        if (!confirm(`Delete ${teamName} and all of its players?`)) {
-            return;
-        }
-
-        // Remove the team
-        Teams.splice(teamIndex, 1);
-
-        // Remove the score
-        Scores.splice(teamIndex, 1);
-
-        // Remove the players
-        delete players[teamName];
-
-        // Remove matchups that can no longer be played.
-        currentMatchups = currentMatchups.filter(matchup =>
-            matchup.home !== teamName && matchup.away !== teamName
-        );
-
-        updateTeams();
-        renderMatchups();
-    }
-    // -----------------------------
-    // ROTATE TEAMS
-    // -----------------------------
-
-    function randomizeMatchups() {
-
-        // Make a copy so we don't change the actual Teams array
-        let shuffledTeams = [...Teams];
-
-        currentMatchups = [];
-
-        // Shuffle the teams randomly
-        shuffledTeams.sort(() => Math.random() - 0.5);
-
-        for (let i = 0; i < shuffledTeams.length; i += 2) {
-            currentMatchups.push({
-                home: shuffledTeams[i],
-                away: shuffledTeams[i + 1] || null
-            });
-        }
-
-        renderMatchups();
-    }
-
-    function deleteMatchup(matchupIndex) {
-        if (matchupIndex < 0 || matchupIndex >= currentMatchups.length) {
-            return;
-        }
-
-        currentMatchups.splice(matchupIndex, 1);
-        renderMatchups();
+        visibleTeams.forEach(team => {
+            let teamDiv = document.createElement("div");
+            teamDiv.className = "team";
+            let roster = state.players[team] || [];
+            teamDiv.innerHTML = `<div class="team-heading"><h3>${escapeHTML(team)}</h3><strong>${state.scores[team] || 0} points</strong></div><p>Players:</p><ul>${roster.length ? roster.map((player, index) => `<li>${escapeHTML(player)} <button type="button">Delete</button></li>`).join("") : "<li>No players yet.</li>"}</ul>`;
+            let playerButtons = teamDiv.querySelectorAll("li button");
+            playerButtons.forEach((button, index) => button.addEventListener("click", () => deletePlayer(team, index)));
+            let score = document.createElement("p");
+            score.className = "score";
+            score.textContent = state.scores[team] || 0;
+            teamDiv.appendChild(score);
+            let actions = document.createElement("div");
+            actions.className = "team-actions";
+            actions.innerHTML = `<button type="button">+1 Point</button><button type="button">-1 Point</button><button type="button">Rename</button><button type="button" class="danger">Delete Team</button>`;
+            actions.children[0].addEventListener("click", () => updateScore(team, 1));
+            actions.children[1].addEventListener("click", () => updateScore(team, -1));
+            actions.children[2].addEventListener("click", () => renameTeam(team));
+            actions.children[3].addEventListener("click", () => deleteTeam(team));
+            teamDiv.appendChild(actions);
+            display.appendChild(teamDiv);
+        });
+        let select = document.getElementById("teamSelect");
+        select.innerHTML = "";
+        state.teams.forEach(team => {
+            let option = document.createElement("option");
+            option.value = team;
+            option.textContent = team;
+            select.appendChild(option);
+        });
     }
 
     function renderMatchups() {
-        let matchups = document.getElementById("matchups");
-        matchups.innerHTML = "";
-
-        if (currentMatchups.length === 0) {
-            matchups.innerHTML = '<p class="empty-state">No matchups yet. Randomize the teams to create one.</p>';
+        let display = document.getElementById("matchups");
+        display.innerHTML = "";
+        if (state.matchups.length === 0) {
+            display.innerHTML = '<p class="empty-state">No matchups yet. Randomize the teams to create one.</p>';
             return;
         }
-
-        let heading = document.createElement("h2");
-        heading.textContent = "Matchups";
-        matchups.appendChild(heading);
-
-        currentMatchups.forEach(function(matchup, index) {
-            let matchupDiv = document.createElement("div");
-            matchupDiv.className = "itinerary-item";
-
-            let title = document.createElement("strong");
-            title.textContent = matchup.away
-                ? `${matchup.home} vs ${matchup.away}`
-                : `${matchup.home} has a BYE`;
-            matchupDiv.appendChild(title);
-
-            let actions = document.createElement("div");
-            actions.className = "matchup-actions";
-
-            let deleteButton = document.createElement("button");
-            deleteButton.className = "danger";
-            deleteButton.type = "button";
-            deleteButton.textContent = "Delete Matchup";
-            deleteButton.addEventListener("click", function() {
-                deleteMatchup(index);
-            });
-
-            actions.appendChild(deleteButton);
-            matchupDiv.appendChild(actions);
-            matchups.appendChild(matchupDiv);
+        display.innerHTML = "<h2>Matchups</h2>";
+        state.matchups.forEach((matchup, index) => {
+            let div = document.createElement("div");
+            div.className = `itinerary-item${matchup.completed ? " completed" : ""}`;
+            let away = matchup.away ? escapeHTML(matchup.away) : "BYE";
+            div.innerHTML = `<div class="matchup-heading"><strong>${escapeHTML(matchup.home)} ${matchup.away ? "vs" : "has a"} ${away}</strong><span>${matchup.completed ? "Completed" : "In progress"}</span></div>`;
+            if (matchup.away) {
+                let score = document.createElement("p");
+                score.className = "score";
+                score.textContent = `${matchup.homeScore || 0} - ${matchup.awayScore || 0}`;
+                div.appendChild(score);
+                let actions = document.createElement("div");
+                actions.className = "matchup-actions";
+                actions.innerHTML = `<button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen" : "Complete"}</button><button type="button" class="danger">Delete</button>`;
+                actions.children[0].addEventListener("click", () => updateMatchupScore(index, "home", 1));
+                actions.children[1].addEventListener("click", () => updateMatchupScore(index, "away", 1));
+                actions.children[2].addEventListener("click", () => toggleMatchup(index));
+                actions.children[3].addEventListener("click", () => deleteMatchup(index));
+                div.appendChild(actions);
+            } else {
+                let actions = document.createElement("div");
+                actions.className = "matchup-actions";
+                actions.innerHTML = `<button type="button" class="danger">Delete</button>`;
+                actions.children[0].addEventListener("click", () => deleteMatchup(index));
+                div.appendChild(actions);
+            }
+            display.appendChild(div);
         });
     }
-    function deletePlayer(teamName, playerIndex) {
 
-        players[teamName].splice(playerIndex, 1);
-
-        updateTeams();
-}
-    // -----------------------------
-    // UPDATE TEAM DISPLAY
-    // -----------------------------
-
-    function updateTeams() {
-        let teamsDisplay = document.getElementById("teamsDisplay");
-        teamsDisplay.innerHTML = "";
-
-        if (Teams.length === 0) {
-            teamsDisplay.innerHTML = '<p class="empty-state">No teams yet. Add a team above to get started.</p>';
-        }
-
-        Teams.forEach(function(teamName, index) {
-            let teamDiv = document.createElement("div");
-            teamDiv.className = "team";
-
-            let teamScore = Scores[index] || 0;
-            let teamPlayers = players[teamName] || [];
-
-            teamDiv.innerHTML = `
-                <h3>${teamName}</h3>
-
-                <p>Players:</p>
-
-                <ul>
-                    ${teamPlayers.map((player, playerIndex) => `
-                        <li>
-                            ${player}
-                            <button onclick="deletePlayer('${teamName}', ${playerIndex})">
-                                Delete
-                            </button>
-                        </li>
-                    `).join("")}
-                </ul>
-
-                <p class="score">${teamScore}</p>
-
-                <button onclick="updateScore(${index}, 1)">
-                    +1 Point
-                </button>
-
-                <button onclick="updateScore(${index}, -1)">
-                    -1 Point
-                </button>
-
-                <button class="danger" onclick="deleteTeam(${index})">
-                    Delete Team
-                </button>
-            `;
-
-            teamsDisplay.appendChild(teamDiv);
-        });
-
-        let teamSelect = document.getElementById("teamSelect");
-        teamSelect.innerHTML = Teams.map(team => `<option value="${team}">${team}</option>`).join("");
+    function renderAll() {
+        renderItinerary();
+        renderTeams();
+        renderMatchups();
     }
 
-    updateTeams();
-    renderMatchups();
+    document.getElementById("teamSearch").addEventListener("input", renderTeams);
+    document.getElementById("randomizeButton").addEventListener("click", randomizeMatchups);
+    document.getElementById("clearDataButton").addEventListener("click", () => {
+        if (!confirm("Clear all teams, scores, players, itinerary, and matchups?")) return;
+        state = {teams: [], scores: {}, players: {}, itinerary: [], matchups: []};
+        localStorage.removeItem(STORAGE_KEY);
+        commit("All season data cleared.");
+    });
+    document.getElementById("exportButton").addEventListener("click", () => {
+        let blob = new Blob([JSON.stringify(state, null, 2)], {type: "application/json"});
+        let link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "school-soccer-season.json";
+        link.click();
+        URL.revokeObjectURL(link.href);
+        setStatus("Season exported.", false);
+    });
+    document.getElementById("importInput").addEventListener("change", event => {
+        let file = event.target.files[0];
+        if (!file) return;
+        let reader = new FileReader();
+        reader.onload = () => {
+            try {
+                let imported = JSON.parse(reader.result);
+                if (!Array.isArray(imported.teams) || !imported.players || !imported.scores) throw new Error();
+                state = normalizeState(imported);
+                commit("Season imported.");
+            } catch (error) {
+                setStatus("That file is not a valid season export.");
+            }
+            event.target.value = "";
+        };
+        reader.readAsText(file);
+    });
 
+    renderAll();
 </script>
 
 </body>
