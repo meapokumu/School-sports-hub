@@ -145,6 +145,10 @@
             min-width: 120px;
         }
 
+        .matchup-actions button.selected {
+            background: #16803c;
+        }
+
         .completed {
             opacity: 0.7;
             border-left-color: #16803c;
@@ -680,7 +684,7 @@
     </div>
 
     <button class="rotation" id="randomizeButton" type="button">
-        Randomize Matchups
+        Make Matchups
     </button>
     
     <div id="matchups"></div>
@@ -712,7 +716,8 @@
                 "Team B": ["Player 4", "Player 5", "Player 6"]
             },
             itinerary: [],
-            matchups: []
+            matchups: [],
+            selectedMatchup: null
         };
     }
 
@@ -763,7 +768,10 @@
                     homeScore: Math.max(0, Number(matchup.homeScore) || 0),
                     awayScore: Math.max(0, Number(matchup.awayScore) || 0),
                     completed: Boolean(matchup.completed)
-                })) : []
+                })) : [],
+            selectedMatchup: Number.isInteger(value.selectedMatchup) && value.selectedMatchup >= 0 && value.selectedMatchup < (value.matchups || []).length
+                ? value.selectedMatchup
+                : null
         };
     }
 
@@ -921,10 +929,16 @@
     function randomizeMatchups() {
         let shuffled = [...state.teams].sort(() => Math.random() - 0.5);
         state.matchups = [];
+        state.selectedMatchup = null;
         for (let index = 0; index < shuffled.length; index += 2) {
             state.matchups.push({home: shuffled[index], away: shuffled[index + 1] || null, homeScore: 0, awayScore: 0, completed: false});
         }
         commit("New matchups created.");
+    }
+
+    function chooseMatchup(index) {
+        state.selectedMatchup = index;
+        commit("Matchup chosen for the field.");
     }
 
     function updateMatchupScore(index, side, points) {
@@ -941,6 +955,8 @@
 
     function deleteMatchup(index) {
         state.matchups.splice(index, 1);
+        if (state.selectedMatchup === index) state.selectedMatchup = null;
+        else if (state.selectedMatchup > index) state.selectedMatchup -= 1;
         commit("Matchup deleted.");
     }
 
@@ -1025,11 +1041,12 @@
                 div.appendChild(score);
                 let actions = document.createElement("div");
                 actions.className = "matchup-actions";
-                actions.innerHTML = `<button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen" : "Complete"}</button><button type="button" class="danger">Delete</button>`;
-                actions.children[0].addEventListener("click", () => updateMatchupScore(index, "home", 1));
-                actions.children[1].addEventListener("click", () => updateMatchupScore(index, "away", 1));
-                actions.children[2].addEventListener("click", () => toggleMatchup(index));
-                actions.children[3].addEventListener("click", () => deleteMatchup(index));
+                actions.innerHTML = `<button type="button" class="${state.selectedMatchup === index ? "selected" : ""}">${state.selectedMatchup === index ? "Chosen" : "Choose"}</button><button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen" : "Complete"}</button><button type="button" class="danger">Delete</button>`;
+                actions.children[0].addEventListener("click", () => chooseMatchup(index));
+                actions.children[1].addEventListener("click", () => updateMatchupScore(index, "home", 1));
+                actions.children[2].addEventListener("click", () => updateMatchupScore(index, "away", 1));
+                actions.children[3].addEventListener("click", () => toggleMatchup(index));
+                actions.children[4].addEventListener("click", () => deleteMatchup(index));
                 div.appendChild(actions);
             } else {
                 let actions = document.createElement("div");
@@ -1048,7 +1065,10 @@
         let controls = document.getElementById("fieldControls");
         let queue = document.getElementById("fieldQueue");
         let nextIndex = state.matchups.findIndex(matchup => !matchup.completed);
-        let displayIndex = nextIndex >= 0 ? nextIndex : state.matchups.length - 1;
+        let selectedIndex = state.selectedMatchup !== null && state.matchups[state.selectedMatchup]
+            ? state.selectedMatchup
+            : -1;
+        let displayIndex = selectedIndex >= 0 ? selectedIndex : (nextIndex >= 0 ? nextIndex : state.matchups.length - 1);
 
         summary.innerHTML = nextIndex >= 0
             ? `<span>Next up</span><strong>Match ${nextIndex + 1} of ${state.matchups.length}</strong>`
@@ -1112,7 +1132,7 @@
     });
     document.getElementById("clearDataButton").addEventListener("click", () => {
         if (!confirm("Clear all teams, scores, players, itinerary, and matchups?")) return;
-        state = {teams: [], scores: {}, players: {}, itinerary: [], matchups: []};
+        state = {teams: [], scores: {}, players: {}, itinerary: [], matchups: [], selectedMatchup: null};
         localStorage.removeItem(STORAGE_KEY);
         commit("All season data cleared.");
     });
