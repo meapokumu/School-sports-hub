@@ -8,23 +8,44 @@
 
     <style>
         body {
-            font-family: Arial, sans-serif;
-            background: #f2f2f2;
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+            background: #e8f0eb;
+            color: #17332a;
             margin: 0;
-            padding: 30px;
+            padding: clamp(14px, 4vw, 48px);
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1080px;
             margin: auto;
             background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: clamp(20px, 4vw, 42px);
+            border: 1px solid #d4e2d8;
+            border-radius: 18px;
+            box-shadow: 0 18px 45px rgba(20, 60, 43, 0.1);
         }
 
-        h1, h2 {
-            text-align: center;
+        h1 {
+            margin: 0 0 8px;
+            color: #123d2b;
+            font-size: clamp(32px, 5vw, 52px);
+            letter-spacing: -1px;
+        }
+
+        h2 {
+            margin: 34px 0 16px;
+            color: #1c4d38;
+            font-size: clamp(22px, 3vw, 30px);
+        }
+
+        h1::after {
+            content: "MATCHDAY CONTROL CENTER";
+            display: block;
+            margin-top: 8px;
+            color: #e0733c;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 2px;
         }
 
         form {
@@ -35,8 +56,17 @@
         input,
         textarea,
         button {
-            padding: 10px;
+            border: 1px solid #cbdcd0;
+            border-radius: 8px;
+            padding: 11px 13px;
             font-size: 16px;
+        }
+
+        input,
+        textarea,
+        select {
+            background: #fbfdfb;
+            color: #17332a;
         }
 
         textarea {
@@ -45,15 +75,18 @@
         }
 
         button {
-            background: #222;
+            background: #164b35;
             color: white;
-            border: none;
-            border-radius: 6px;
+            border-color: #164b35;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: bold;
+            transition: background 160ms ease, transform 160ms ease;
         }
 
         button:hover {
-            background: #444;
+            background: #0e3827;
+            transform: translateY(-1px);
         }
 
         button:focus-visible,
@@ -112,7 +145,7 @@
             min-width: 160px;
             padding: 10px;
             border-radius: 6px;
-            background: #222;
+            background: #164b35;
             color: white;
             text-align: center;
             cursor: pointer;
@@ -168,12 +201,12 @@
         .view-tab {
             flex: 1;
             border-radius: 6px 6px 0 0;
-            background: #e8e8e8;
-            color: #222;
+            background: #edf4ef;
+            color: #28503d;
         }
 
         .view-tab.active {
-            background: #222;
+            background: #e0733c;
             color: white;
         }
 
@@ -188,7 +221,8 @@
             align-items: center;
             margin: 18px 0;
             padding: 14px;
-            background: #f7f7f7;
+            background: #edf5ef;
+            border: 1px solid #d5e5d9;
             border-radius: 8px;
         }
 
@@ -203,18 +237,20 @@
             align-items: center;
             min-height: 430px;
             overflow: hidden;
-            border: 5px solid white;
-            border-radius: 12px;
-            background: repeating-linear-gradient(90deg, #287a43 0, #287a43 9%, #2f874b 9%, #2f874b 18%);
-            box-shadow: inset 0 0 0 2px #1d5c32, 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 5px solid #f9fff9;
+            border-radius: 14px;
+            background: linear-gradient(90deg, transparent calc(50% - 1px), rgba(255, 255, 255, 0.85) calc(50% - 1px), rgba(255, 255, 255, 0.85) calc(50% + 1px), transparent calc(50% + 1px)), repeating-linear-gradient(90deg, #287a43 0, #287a43 9%, #2f874b 9%, #2f874b 18%);
+            box-shadow: inset 0 0 0 2px #1d5c32, 0 12px 24px rgba(20, 60, 43, 0.2);
             color: white;
         }
 
         .soccer-field::before {
             content: "";
             position: absolute;
-            inset: 0 50%;
-            border-left: 2px solid rgba(255, 255, 255, 0.85);
+            inset: 8% 0;
+            border-top: 2px solid rgba(255, 255, 255, 0.8);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.8);
+            pointer-events: none;
         }
 
         .soccer-field::after {
@@ -227,6 +263,32 @@
             border: 2px solid rgba(255, 255, 255, 0.85);
             border-radius: 50%;
             transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+
+        .field-goal {
+            position: absolute;
+            top: 50%;
+            z-index: 3;
+            width: 48px;
+            height: 142px;
+            border: 3px solid rgba(255, 255, 255, 0.95);
+            background: repeating-linear-gradient(0deg, rgba(255,255,255,0.22) 0 2px, transparent 2px 10px), repeating-linear-gradient(90deg, rgba(255,255,255,0.2) 0 2px, transparent 2px 10px), rgba(15, 67, 37, 0.22);
+            transform: translateY(-50%);
+            box-shadow: inset 0 0 0 2px rgba(14, 56, 34, 0.35);
+            pointer-events: none;
+        }
+
+        .field-goal.home {
+            left: -3px;
+            border-left: 0;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .field-goal.away {
+            right: -3px;
+            border-right: 0;
+            border-radius: 6px 0 0 6px;
         }
 
         .field-side {
@@ -292,7 +354,7 @@
             gap: 12px;
             padding: 12px;
             border-radius: 6px;
-            background: #f7f7f7;
+            background: #f3f8f4;
         }
 
         .queue-item.next {
@@ -301,11 +363,11 @@
         }
 
         .itinerary-item {
-            background: #f7f7f7;
+            background: #f6faf7;
             padding: 15px;
             margin-top: 15px;
             border-radius: 8px;
-            border-left: 5px solid #222;
+            border-left: 5px solid #e0733c;
         }
 
         .team-controls {
@@ -313,7 +375,7 @@
             gap: 12px;
             margin-top: 20px;
             padding: 20px;
-            background: #f7f7f7;
+            background: #f3f8f4;
             border-radius: 8px;
         }
 
@@ -340,7 +402,7 @@
         .team {
             flex: 1;
             min-width: 260px;
-            background: #f7f7f7;
+            background: #f6faf7;
             padding: 15px;
             border-radius: 8px;
         }
@@ -507,7 +569,21 @@
             }
 
             .soccer-field {
-                min-height: 320px;
+                min-height: 360px;
+                border-width: 4px;
+            }
+
+            .field-goal {
+                width: 30px;
+                height: 112px;
+            }
+
+            .field-team-name {
+                font-size: clamp(17px, 6vw, 26px);
+            }
+
+            .field-score {
+                font-size: clamp(42px, 14vw, 66px);
             }
 
             .field-summary {
@@ -565,7 +641,7 @@
                 gap: 4px;
                 margin: 0 0 18px;
                 padding: 10px 12px;
-                background: #f7f7f7;
+                background: #f3f8f4;
                 border-radius: 8px;
                 font-size: 14px;
                 text-align: center;
@@ -1083,6 +1159,16 @@
         }
 
         let matchup = state.matchups[displayIndex];
+        let homeGoal = document.createElement("div");
+        homeGoal.className = "field-goal home";
+        homeGoal.setAttribute("aria-hidden", "true");
+        field.appendChild(homeGoal);
+
+        let awayGoal = document.createElement("div");
+        awayGoal.className = "field-goal away";
+        awayGoal.setAttribute("aria-hidden", "true");
+        field.appendChild(awayGoal);
+
         let homeSide = document.createElement("div");
         homeSide.className = "field-side home";
         homeSide.innerHTML = `<span class="field-label">Home side</span><span class="field-team-name">${escapeHTML(matchup.home)}</span><span class="field-score">${matchup.homeScore || 0}</span>`;
