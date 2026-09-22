@@ -53,6 +53,95 @@
             gap: 12px;
         }
 
+        .itinerary-form {
+            gap: 18px;
+            margin-top: 20px;
+            padding: clamp(18px, 3vw, 28px);
+            background: #f3f8f4;
+            border: 1px solid #dce9df;
+            border-radius: 14px;
+        }
+
+        .itinerary-form-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .itinerary-form-header h3,
+        .itinerary-form-header p {
+            margin: 0;
+        }
+
+        .itinerary-form-header h3 {
+            color: #164b35;
+            font-size: 20px;
+        }
+
+        .itinerary-form-header p {
+            max-width: 520px;
+            color: #5d7467;
+            font-size: 14px;
+        }
+
+        .itinerary-fields {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 14px;
+        }
+
+        .itinerary-field {
+            display: grid;
+            gap: 6px;
+        }
+
+        .itinerary-field label {
+            color: #28503d;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 0.7px;
+            text-transform: uppercase;
+        }
+
+        .itinerary-field label span {
+            color: #789083;
+            font-weight: normal;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+
+        .itinerary-field.day,
+        .itinerary-field.date,
+        .itinerary-field.time {
+            grid-column: span 4;
+        }
+
+        .itinerary-field.activity,
+        .itinerary-field.location,
+        .itinerary-field.coach {
+            grid-column: span 4;
+        }
+
+        .itinerary-field.notes {
+            grid-column: 1 / -1;
+        }
+
+        .itinerary-form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .itinerary-form-actions button {
+            min-width: 180px;
+        }
+
+        .itinerary-form-actions button[type="button"] {
+            background: transparent;
+            color: #164b35;
+        }
+
         input,
         textarea,
         button {
@@ -370,6 +459,51 @@
             border-left: 5px solid #e0733c;
         }
 
+        .itinerary-card {
+            display: grid;
+            grid-template-columns: minmax(150px, 0.8fr) 1.6fr auto;
+            gap: 18px;
+            align-items: start;
+            padding: 18px;
+        }
+
+        .itinerary-date {
+            color: #164b35;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .itinerary-time {
+            display: block;
+            margin-top: 5px;
+            color: #e0733c;
+            font-size: 14px;
+        }
+
+        .itinerary-details strong {
+            display: block;
+            margin-bottom: 7px;
+            color: #17332a;
+            font-size: 19px;
+        }
+
+        .itinerary-meta,
+        .itinerary-notes {
+            margin: 5px 0 0;
+            color: #5d7467;
+            font-size: 14px;
+        }
+
+        .itinerary-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .itinerary-actions button {
+            min-width: 88px;
+        }
+
         .team-controls {
             display: grid;
             gap: 12px;
@@ -463,6 +597,58 @@
                 flex-direction: column;
                 width: 100%;
                 gap: 10px;
+            }
+
+            .itinerary-form {
+                display: grid;
+                gap: 16px;
+                padding: 16px;
+            }
+
+            .itinerary-form-header {
+                display: block;
+            }
+
+            .itinerary-fields {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+            }
+
+            .itinerary-field.day,
+            .itinerary-field.date,
+            .itinerary-field.time,
+            .itinerary-field.activity,
+            .itinerary-field.location,
+            .itinerary-field.coach {
+                grid-column: span 1;
+            }
+
+            .itinerary-field.notes {
+                grid-column: 1 / -1;
+            }
+
+            .itinerary-form-actions {
+                display: grid;
+            }
+
+            .itinerary-form-actions button {
+                width: 100%;
+            }
+
+            .itinerary-card {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                padding: 16px;
+            }
+
+            .itinerary-actions {
+                display: flex;
+                flex-direction: row;
+            }
+
+            .itinerary-actions button {
+                flex: 1;
             }
 
             input,
@@ -675,57 +861,49 @@
     <!-- ITINERARY -->
     <h2>Itinerary</h2>
 
-    <form id="itineraryForm">
+    <form id="itineraryForm" class="itinerary-form">
+        <div class="itinerary-form-header">
+            <div>
+                <h3 id="itineraryFormTitle">Add a matchday event</h3>
+                <p>Build the schedule for training, games, travel, and team activities.</p>
+            </div>
+        </div>
 
-        <input
-            type="text"
-            id="day"
-            placeholder="Day"
-            required
-        >
+        <div class="itinerary-fields">
+            <div class="itinerary-field day">
+                <label for="day">Day</label>
+                <input type="text" id="day" placeholder="e.g. Saturday" required>
+            </div>
+            <div class="itinerary-field date">
+                <label for="date">Date</label>
+                <input type="date" id="date" required>
+            </div>
+            <div class="itinerary-field time">
+                <label for="time">Start time</label>
+                <input type="time" id="time" required>
+            </div>
+            <div class="itinerary-field activity">
+                <label for="activity">Activity</label>
+                <input type="text" id="activity" placeholder="e.g. Home game" required>
+            </div>
+            <div class="itinerary-field location">
+                <label for="location">Location</label>
+                <input type="text" id="location" placeholder="e.g. Main field" required>
+            </div>
+            <div class="itinerary-field coach">
+                <label for="coach">Coach / contact</label>
+                <input type="text" id="coach" placeholder="e.g. Coach Taylor" required>
+            </div>
+            <div class="itinerary-field notes">
+                <label for="notes">Notes <span>(optional)</span></label>
+                <textarea id="notes" placeholder="Add arrival details, equipment reminders, or other notes"></textarea>
+            </div>
+        </div>
 
-        <input
-            type="date"
-            id="date"
-            required
-        >
-
-        <input
-            type="time"
-            id="time"
-            required
-        >
-
-        <input
-            type="text"
-            id="activity"
-            placeholder="Activity"
-            required
-        >
-
-        <input
-            type="text"
-            id="location"
-            placeholder="Location"
-            required
-        >
-
-        <input
-            type="text"
-            id="coach"
-            placeholder="Coach"
-            required
-        >
-
-        <textarea
-            id="notes"
-            placeholder="Notes"
-        ></textarea>
-
-        <button id="itinerarySubmit" type="submit">
-            Add Itinerary Item
-        </button>
-        <button id="itineraryCancel" type="button" hidden>Cancel Edit</button>
+        <div class="itinerary-form-actions">
+            <button id="itinerarySubmit" type="submit">Add Itinerary Item</button>
+            <button id="itineraryCancel" type="button" hidden>Cancel Edit</button>
+        </div>
 
     </form>
 
@@ -941,6 +1119,7 @@
         editingItineraryId = null;
         document.getElementById("itineraryForm").reset();
         document.getElementById("itinerarySubmit").textContent = "Add Itinerary Item";
+        document.getElementById("itineraryFormTitle").textContent = "Add a matchday event";
         document.getElementById("itineraryCancel").hidden = true;
     }
 
@@ -953,6 +1132,7 @@
             if (field) field.value = item[key] || "";
         });
         document.getElementById("itinerarySubmit").textContent = "Save Itinerary Changes";
+        document.getElementById("itineraryFormTitle").textContent = "Edit matchday event";
         document.getElementById("itineraryCancel").hidden = false;
         document.getElementById("day").focus();
     }
@@ -1046,10 +1226,10 @@
         }
         entries.forEach(item => {
             let div = document.createElement("div");
-            div.className = "itinerary-item";
-            div.innerHTML = `<strong>${escapeHTML(item.day)} ${escapeHTML(item.date)}</strong><br>${escapeHTML(item.time)} | ${escapeHTML(item.activity)} | ${escapeHTML(item.location)}<br>Coach: ${escapeHTML(item.coach)}<br><strong>Notes:</strong> ${escapeHTML(item.notes || "None")}`;
+            div.className = "itinerary-item itinerary-card";
+            div.innerHTML = `<div class="itinerary-date"><span>${escapeHTML(item.day)}</span><span class="itinerary-time">${escapeHTML(item.date)} at ${escapeHTML(item.time)}</span></div><div class="itinerary-details"><strong>${escapeHTML(item.activity)}</strong><p class="itinerary-meta">${escapeHTML(item.location)} - Coach: ${escapeHTML(item.coach)}</p><p class="itinerary-notes">${escapeHTML(item.notes || "No additional notes")}</p></div>`;
             let actions = document.createElement("div");
-            actions.className = "matchup-actions";
+            actions.className = "itinerary-actions";
             actions.innerHTML = `<button type="button">Edit</button><button type="button" class="danger">Delete</button>`;
             actions.children[0].addEventListener("click", () => editItinerary(item.id));
             actions.children[1].addEventListener("click", () => deleteItinerary(item.id));
