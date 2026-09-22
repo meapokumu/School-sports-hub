@@ -419,6 +419,41 @@
             font-weight: bold;
         }
 
+        .field-lineup {
+            display: grid;
+            gap: 7px;
+            margin: 16px auto 0;
+            max-width: 220px;
+            text-align: left;
+        }
+
+        .field-player {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 6px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            border-radius: 5px;
+            background: rgba(11, 65, 34, 0.32);
+            font-size: 12px;
+        }
+
+        .field-player strong {
+            overflow-wrap: anywhere;
+        }
+
+        .field-player span {
+            color: #d9f0dc;
+            font-size: 10px;
+            text-align: right;
+        }
+
+        .field-empty-lineup {
+            margin: 16px 0 0;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 12px;
+        }
+
         .field-controls {
             display: flex;
             flex-wrap: wrap;
@@ -549,6 +584,24 @@
 
         .team button {
             margin-top: 5px;
+        }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-row span {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .player-position {
+            width: 145px;
+            min-width: 145px;
+            padding: 6px 8px;
+            font-size: 13px;
         }
 
         .matchup-actions {
@@ -765,6 +818,18 @@
                 font-size: 15px;
             }
 
+            .player-row {
+                align-items: stretch;
+                flex-wrap: wrap;
+            }
+
+            .player-position {
+                flex: 1;
+                width: auto;
+                min-width: 145px;
+                min-height: 42px;
+            }
+
             .score {
                 font-size: 40px;
                 margin: 12px 0;
@@ -820,6 +885,16 @@
 
             .field-score {
                 font-size: clamp(42px, 14vw, 66px);
+            }
+
+            .field-lineup {
+                max-width: 150px;
+                margin-top: 12px;
+            }
+
+            .field-player {
+                padding: 5px;
+                font-size: 11px;
             }
 
             .field-summary {
@@ -1021,6 +1096,7 @@
 
 <script>
     const STORAGE_KEY = "school-soccer-season-v1";
+    const PLAYER_POSITIONS = ["Unassigned", "Goalkeeper", "Defender", "Midfielder", "Forward"];
     let editingItineraryId = null;
     let state = loadState();
 
@@ -1031,6 +1107,10 @@
             players: {
                 "Team A": ["Player 1", "Player 2", "Player 3"],
                 "Team B": ["Player 4", "Player 5", "Player 6"]
+            },
+            positions: {
+                "Team A": {"Player 1": "Unassigned", "Player 2": "Unassigned", "Player 3": "Unassigned"},
+                "Team B": {"Player 4": "Unassigned", "Player 5": "Unassigned", "Player 6": "Unassigned"}
             },
             itinerary: [],
             matchups: [],
@@ -1056,17 +1136,24 @@
         let teams = value.teams.filter(team => typeof team === "string" && team.trim());
         let scores = {};
         let players = {};
+        let positions = {};
         teams.forEach(team => {
             scores[team] = Number.isFinite(Number(value.scores?.[team])) ? Math.max(0, Number(value.scores[team])) : 0;
             players[team] = Array.isArray(value.players?.[team])
                 ? value.players[team].filter(player => typeof player === "string" && player.trim())
                 : [];
+            positions[team] = {};
+            players[team].forEach(player => {
+                let position = value.positions?.[team]?.[player];
+                positions[team][player] = PLAYER_POSITIONS.includes(position) ? position : "Unassigned";
+            });
         });
 
         return {
             teams,
             scores,
             players,
+            positions,
             itinerary: Array.isArray(value.itinerary) ? value.itinerary.map(item => ({
                 id: item.id || `${Date.now()}-${Math.random()}`,
                 day: item.day || "",
@@ -1138,6 +1225,9 @@
         state.teams.push(name);
         state.scores[name] = 0;
         state.players[name] = newPlayers;
+        state.positions = state.positions || {};
+        state.positions[name] = {};
+        newPlayers.forEach(player => state.positions[name][player] = "Unassigned");
         event.target.reset();
         commit(`${name} added.`);
     });
@@ -1153,6 +1243,9 @@
             return;
         }
         state.players[team] = existing.concat(unique);
+        state.positions = state.positions || {};
+        state.positions[team] = state.positions[team] || {};
+        unique.forEach(player => state.positions[team][player] = "Unassigned");
         event.target.reset();
         commit("Players added.");
     });
@@ -1222,8 +1315,11 @@
         state.teams[index] = newName;
         state.scores[newName] = state.scores[team] || 0;
         state.players[newName] = state.players[team] || [];
+        state.positions = state.positions || {};
+        state.positions[newName] = state.positions[team] || {};
         delete state.scores[team];
         delete state.players[team];
+        delete state.positions?.[team];
         state.matchups.forEach(matchup => {
             if (matchup.home === team) matchup.home = newName;
             if (matchup.away === team) matchup.away = newName;
@@ -1236,13 +1332,22 @@
         state.teams = state.teams.filter(item => item !== team);
         delete state.scores[team];
         delete state.players[team];
+        delete state.positions?.[team];
         state.matchups = state.matchups.filter(matchup => matchup.home !== team && matchup.away !== team);
         commit(`${team} deleted.`);
     }
 
     function deletePlayer(team, playerIndex) {
+        let player = state.players[team][playerIndex];
         state.players[team].splice(playerIndex, 1);
+        delete state.positions?.[team]?.[player];
         commit("Player deleted.");
+    }
+
+    function updatePlayerPosition(team, player, position) {
+        state.positions[team] = state.positions[team] || {};
+        state.positions[team][player] = PLAYER_POSITIONS.includes(position) ? position : "Unassigned";
+        commit(`${player} position updated.`);
     }
 
     function randomizeMatchups() {
@@ -1313,9 +1418,19 @@
             let teamDiv = document.createElement("div");
             teamDiv.className = "team";
             let roster = state.players[team] || [];
-            teamDiv.innerHTML = `<div class="team-heading"><h3>${escapeHTML(team)}</h3><strong>${state.scores[team] || 0} points</strong></div><p>Players:</p><ul>${roster.length ? roster.map((player, index) => `<li>${escapeHTML(player)} <button type="button">Delete</button></li>`).join("") : "<li>No players yet.</li>"}</ul>`;
+            let rosterMarkup = roster.length ? roster.map((player, index) => {
+                let currentPosition = state.positions[team]?.[player] || "Unassigned";
+                let positionOptions = PLAYER_POSITIONS.map(position => `<option value="${escapeHTML(position)}"${position === currentPosition ? " selected" : ""}>${escapeHTML(position)}</option>`).join("");
+                return `<li><div class="player-row"><span>${escapeHTML(player)}</span><select class="player-position" data-player-index="${index}" aria-label="Position for ${escapeHTML(player)}">${positionOptions}</select><button type="button">Delete</button></div></li>`;
+            }).join("") : "<li>No players yet.</li>";
+            teamDiv.innerHTML = `<div class="team-heading"><h3>${escapeHTML(team)}</h3><strong>${state.scores[team] || 0} points</strong></div><p>Players and positions:</p><ul>${rosterMarkup}</ul>`;
             let playerButtons = teamDiv.querySelectorAll("li button");
             playerButtons.forEach((button, index) => button.addEventListener("click", () => deletePlayer(team, index)));
+            let positionSelects = teamDiv.querySelectorAll(".player-position");
+            positionSelects.forEach(select => select.addEventListener("change", () => {
+                let playerIndex = Number(select.dataset.playerIndex);
+                updatePlayerPosition(team, roster[playerIndex], select.value);
+            }));
             let score = document.createElement("p");
             score.className = "score";
             score.textContent = state.scores[team] || 0;
@@ -1391,6 +1506,21 @@
         });
     }
 
+    function renderFieldLineup(team) {
+        let roster = state.players[team] || [];
+        if (roster.length === 0) return '<p class="field-empty-lineup">No players assigned</p>';
+        let positionOrder = new Map(PLAYER_POSITIONS.map((position, index) => [position, index]));
+        let lineup = [...roster].sort((first, second) => {
+            let firstPosition = state.positions[team]?.[first] || "Unassigned";
+            let secondPosition = state.positions[team]?.[second] || "Unassigned";
+            return (positionOrder.get(firstPosition) - positionOrder.get(secondPosition)) || first.localeCompare(second);
+        });
+        return `<div class="field-lineup">${lineup.map(player => {
+            let position = state.positions[team]?.[player] || "Unassigned";
+            return `<div class="field-player"><strong>${escapeHTML(player)}</strong><span>${escapeHTML(position)}</span></div>`;
+        }).join("")}</div>`;
+    }
+
     function renderField() {
         let summary = document.getElementById("fieldSummary");
         let field = document.getElementById("soccerField");
@@ -1427,13 +1557,13 @@
 
         let homeSide = document.createElement("div");
         homeSide.className = "field-side home";
-        homeSide.innerHTML = `<span class="field-label">Home side</span><span class="field-team-name">${escapeHTML(matchup.home)}</span><span class="field-score">${matchup.homeScore || 0}</span>`;
+        homeSide.innerHTML = `<span class="field-label">Home side</span><span class="field-team-name">${escapeHTML(matchup.home)}</span><span class="field-score">${matchup.homeScore || 0}</span>${renderFieldLineup(matchup.home)}`;
         field.appendChild(homeSide);
 
         let awaySide = document.createElement("div");
         awaySide.className = "field-side away";
         awaySide.innerHTML = matchup.away
-            ? `<span class="field-label">Away side</span><span class="field-team-name">${escapeHTML(matchup.away)}</span><span class="field-score">${matchup.awayScore || 0}</span>`
+            ? `<span class="field-label">Away side</span><span class="field-team-name">${escapeHTML(matchup.away)}</span><span class="field-score">${matchup.awayScore || 0}</span>${renderFieldLineup(matchup.away)}`
             : '<span class="field-label">Away side</span><span class="field-team-name">BYE</span><span class="field-score">-</span>';
         field.appendChild(awaySide);
 
@@ -1492,7 +1622,7 @@
     });
     document.getElementById("clearDataButton").addEventListener("click", () => {
         if (!confirm("Clear all teams, scores, players, itinerary, and matchups?")) return;
-        state = {teams: [], scores: {}, players: {}, itinerary: [], matchups: [], selectedMatchup: null};
+        state = {teams: [], scores: {}, players: {}, positions: {}, itinerary: [], matchups: [], selectedMatchup: null};
         localStorage.removeItem(STORAGE_KEY);
         commit("All season data cleared.");
     });
