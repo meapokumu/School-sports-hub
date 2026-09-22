@@ -1371,12 +1371,14 @@
                 div.appendChild(score);
                 let actions = document.createElement("div");
                 actions.className = "matchup-actions";
-                actions.innerHTML = `<button type="button" class="${state.selectedMatchup === index ? "selected" : ""}">${state.selectedMatchup === index ? "Chosen" : "Choose"}</button><button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen" : "Complete"}</button><button type="button" class="danger">Delete</button>`;
+                actions.innerHTML = `<button type="button" class="${state.selectedMatchup === index ? "selected" : ""}">${state.selectedMatchup === index ? "Chosen" : "Choose"}</button><button type="button">- ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">- ${escapeHTML(matchup.away)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen" : "Complete"}</button><button type="button" class="danger">Delete</button>`;
                 actions.children[0].addEventListener("click", () => chooseMatchup(index));
-                actions.children[1].addEventListener("click", () => updateMatchupScore(index, "home", 1));
-                actions.children[2].addEventListener("click", () => updateMatchupScore(index, "away", 1));
-                actions.children[3].addEventListener("click", () => toggleMatchup(index));
-                actions.children[4].addEventListener("click", () => deleteMatchup(index));
+                actions.children[1].addEventListener("click", () => updateMatchupScore(index, "home", -1));
+                actions.children[2].addEventListener("click", () => updateMatchupScore(index, "home", 1));
+                actions.children[3].addEventListener("click", () => updateMatchupScore(index, "away", -1));
+                actions.children[4].addEventListener("click", () => updateMatchupScore(index, "away", 1));
+                actions.children[5].addEventListener("click", () => toggleMatchup(index));
+                actions.children[6].addEventListener("click", () => deleteMatchup(index));
                 div.appendChild(actions);
             } else {
                 let actions = document.createElement("div");
@@ -1436,10 +1438,12 @@
         field.appendChild(awaySide);
 
         if (matchup.away) {
-            controls.innerHTML = `<button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen Match" : "Complete Match"}</button>`;
-            controls.children[0].addEventListener("click", () => updateMatchupScore(displayIndex, "home", 1));
-            controls.children[1].addEventListener("click", () => updateMatchupScore(displayIndex, "away", 1));
-            controls.children[2].addEventListener("click", () => toggleMatchup(displayIndex));
+            controls.innerHTML = `<button type="button">- ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">- ${escapeHTML(matchup.away)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen Match" : "Complete Match"}</button>`;
+            controls.children[0].addEventListener("click", () => updateMatchupScore(displayIndex, "home", -1));
+            controls.children[1].addEventListener("click", () => updateMatchupScore(displayIndex, "home", 1));
+            controls.children[2].addEventListener("click", () => updateMatchupScore(displayIndex, "away", -1));
+            controls.children[3].addEventListener("click", () => updateMatchupScore(displayIndex, "away", 1));
+            controls.children[4].addEventListener("click", () => toggleMatchup(displayIndex));
         }
 
         state.matchups.forEach((item, index) => {
