@@ -939,6 +939,10 @@
                 gap: 10px;
             }
 
+            .itinerary-field {
+                min-width: 0;
+            }
+
             .itinerary-field.day,
             .itinerary-field.date,
             .itinerary-field.time,
@@ -946,10 +950,19 @@
             .itinerary-field.location,
             .itinerary-field.coach {
                 grid-column: span 1;
+                min-width: 0;
             }
 
             .itinerary-field.notes {
                 grid-column: 1 / -1;
+            }
+
+            .itinerary-field input,
+            .itinerary-field textarea {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                font-size: 14px;
             }
 
             .itinerary-form-actions,
@@ -1135,6 +1148,16 @@
         @media (max-width: 520px) {
             .itinerary-fields {
                 grid-template-columns: 1fr;
+            }
+
+            .itinerary-field {
+                width: 100%;
+            }
+
+            .itinerary-field input,
+            .itinerary-field textarea {
+                font-size: 13px;
+                padding: 9px 10px;
             }
 
             .itinerary-form-actions,
