@@ -9,7 +9,7 @@
     <style>
         body {
             font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-            background: #e8f0eb;
+            background: linear-gradient(180deg, #edf5ee 0%, #e8f0eb 100%);
             color: #17332a;
             margin: 0;
             padding: clamp(14px, 4vw, 48px);
@@ -18,11 +18,12 @@
         .container {
             max-width: 1080px;
             margin: auto;
-            background: white;
+            background: rgba(255, 255, 255, 0.96);
             padding: clamp(20px, 4vw, 42px);
             border: 1px solid #d4e2d8;
-            border-radius: 18px;
-            box-shadow: 0 18px 45px rgba(20, 60, 43, 0.1);
+            border-radius: 22px;
+            box-shadow: 0 20px 52px rgba(20, 60, 43, 0.12);
+            backdrop-filter: blur(2px);
         }
 
         h1 {
@@ -57,9 +58,10 @@
             gap: 18px;
             margin-top: 20px;
             padding: clamp(18px, 3vw, 28px);
-            background: #f3f8f4;
+            background: linear-gradient(180deg, #f7fbf8 0%, #edf6f0 100%);
             border: 1px solid #dce9df;
-            border-radius: 14px;
+            border-radius: 18px;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 12px 22px rgba(22, 75, 53, 0.06);
         }
 
         .itinerary-form-header {
@@ -145,8 +147,8 @@
         input,
         textarea,
         button {
-            border: 1px solid #cbdcd0;
-            border-radius: 8px;
+            border: 1px solid #c8d9ce;
+            border-radius: 12px;
             padding: 11px 13px;
             font-size: 16px;
         }
@@ -154,8 +156,16 @@
         input,
         textarea,
         select {
-            background: #fbfdfb;
+            background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
             color: #17332a;
+            box-shadow: inset 0 1px 2px rgba(18, 61, 43, 0.05);
+            transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+        }
+
+        input:hover,
+        textarea:hover,
+        select:hover {
+            border-color: #9fc2b1;
         }
 
         textarea {
@@ -164,18 +174,20 @@
         }
 
         button {
-            background: #164b35;
+            background: linear-gradient(180deg, #1a563e 0%, #123d2b 100%);
             color: white;
             border-color: #164b35;
-            border-radius: 8px;
+            border-radius: 12px;
             cursor: pointer;
             font-weight: bold;
-            transition: background 160ms ease, transform 160ms ease;
+            transition: background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+            box-shadow: 0 8px 16px rgba(22, 75, 53, 0.18);
         }
 
         button:hover {
-            background: #0e3827;
+            background: linear-gradient(180deg, #113f2f 0%, #0d2e23 100%);
             transform: translateY(-1px);
+            box-shadow: 0 10px 18px rgba(22, 75, 53, 0.22);
         }
 
         button:focus-visible,
@@ -487,11 +499,12 @@
         }
 
         .itinerary-item {
-            background: #164b35;
+            background: linear-gradient(180deg, #f6fbf7 0%, #edf6f1 100%);
             padding: 15px;
             margin-top: 15px;
-            border-radius: 8px;
+            border-radius: 14px;
             border-left: 5px solid #e0733c;
+            box-shadow: 0 10px 24px rgba(20, 60, 43, 0.05);
         }
 
         .itinerary-card {
@@ -571,9 +584,11 @@
         .team {
             flex: 1;
             min-width: 260px;
-            background: #f6faf7;
+            background: linear-gradient(180deg, #f8fbf9 0%, #f2f8f4 100%);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 14px;
+            border: 1px solid #dfece2;
+            box-shadow: 0 10px 22px rgba(22, 75, 53, 0.05);
         }
 
         .score {
@@ -626,9 +641,10 @@
             gap: 12px;
             margin-top: 20px;
             padding: 18px;
-            background: #f3f8f4;
+            background: linear-gradient(180deg, #f6faf7 0%, #eef6f1 100%);
             border: 1px solid #dce9df;
-            border-radius: 12px;
+            border-radius: 16px;
+            box-shadow: 0 10px 22px rgba(22, 75, 53, 0.05);
         }
 
         .matchup-builder-field {
@@ -658,9 +674,10 @@
         .standings-panel {
             margin-top: 20px;
             padding: 18px;
-            background: #f3f8f4;
+            background: linear-gradient(180deg, #f6faf7 0%, #eef7f1 100%);
             border: 1px solid #dce9df;
-            border-radius: 12px;
+            border-radius: 16px;
+            box-shadow: 0 8px 18px rgba(22, 75, 53, 0.04);
         }
 
         .feature-panel h3,
