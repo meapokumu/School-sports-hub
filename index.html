@@ -871,33 +871,40 @@
         /* =============================
            MOBILE-ONLY FRIENDLY LAYOUT
            ============================= */
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 15px;
+        }
+
         @media (max-width: 700px) {
             body {
-                padding: 10px;
-                font-size: 16px;
+                padding: 8px;
+                font-size: 15px;
                 -webkit-text-size-adjust: 100%;
             }
 
             .container {
                 width: 100%;
                 max-width: none;
-                box-sizing: border-box;
-                padding: 16px;
+                padding: 14px;
                 border-radius: 10px;
             }
 
             h1 {
                 font-size: 28px;
-                margin: 8px 0 20px;
+                margin: 8px 0 18px;
             }
 
             h2 {
                 font-size: 22px;
-                margin-top: 24px;
+                margin-top: 22px;
             }
 
             h3 {
-                font-size: 19px;
+                font-size: 18px;
             }
 
             form,
@@ -905,13 +912,22 @@
                 display: flex;
                 flex-direction: column;
                 width: 100%;
-                gap: 10px;
+                gap: 8px;
+            }
+
+            .itinerary-form,
+            .team-controls,
+            .feature-panel,
+            .standings-panel,
+            .matchup-builder,
+            .team,
+            .itinerary-item {
+                padding: 12px;
             }
 
             .itinerary-form {
                 display: grid;
-                gap: 16px;
-                padding: 16px;
+                gap: 14px;
             }
 
             .itinerary-form-header {
@@ -919,9 +935,8 @@
             }
 
             .itinerary-fields {
-                display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 12px;
+                gap: 10px;
             }
 
             .itinerary-field.day,
@@ -937,27 +952,31 @@
                 grid-column: 1 / -1;
             }
 
-            .itinerary-form-actions {
+            .itinerary-form-actions,
+            .team-actions,
+            .matchup-actions,
+            .feature-actions,
+            .event-actions,
+            .itinerary-actions {
                 display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 8px;
             }
 
+            .itinerary-actions button,
+            .matchup-actions button,
+            .team-actions button,
+            .feature-actions button,
+            .event-actions button,
             .itinerary-form-actions button {
                 width: 100%;
+                min-width: 0;
             }
 
             .itinerary-card {
                 grid-template-columns: 1fr;
                 gap: 12px;
-                padding: 16px;
-            }
-
-            .itinerary-actions {
-                display: flex;
-                flex-direction: row;
-            }
-
-            .itinerary-actions button {
-                flex: 1;
+                padding: 14px;
             }
 
             input,
@@ -965,31 +984,20 @@
             select,
             button {
                 width: 100%;
-                min-height: 48px;
+                min-height: 44px;
                 box-sizing: border-box;
-                font-size: 17px;
-                padding: 12px;
+                font-size: 15px;
+                padding: 10px 12px;
                 margin: 0;
             }
 
             textarea {
-                min-height: 110px;
+                min-height: 100px;
             }
 
             button {
                 touch-action: manipulation;
                 -webkit-tap-highlight-color: transparent;
-            }
-
-            .team-controls {
-                padding: 12px;
-                margin-top: 15px;
-            }
-
-            .team-controls input,
-            .team-controls select {
-                min-width: 0;
-                width: 100%;
             }
 
             .season-tools,
@@ -1003,7 +1011,6 @@
             .team-filter input {
                 width: 100%;
                 min-width: 0;
-                box-sizing: border-box;
             }
 
             .teams {
@@ -1016,27 +1023,11 @@
             .team {
                 width: 100%;
                 min-width: 0;
-                box-sizing: border-box;
-                padding: 14px;
             }
 
             .team ul {
-                padding-left: 22px;
+                padding-left: 20px;
                 margin-bottom: 12px;
-            }
-
-            .team li {
-                margin-bottom: 8px;
-                overflow-wrap: anywhere;
-            }
-
-            .team li button {
-                width: auto;
-                min-width: 80px;
-                min-height: 42px;
-                margin-left: 5px;
-                padding: 8px 12px;
-                font-size: 15px;
             }
 
             .player-row {
@@ -1047,23 +1038,19 @@
             .player-position {
                 flex: 1;
                 width: auto;
-                min-width: 145px;
-                min-height: 42px;
+                min-width: 120px;
+                min-height: 40px;
             }
 
             .player-number {
-                width: 72px;
-                min-width: 72px;
-                min-height: 42px;
+                width: 68px;
+                min-width: 68px;
+                min-height: 40px;
             }
 
             .score {
-                font-size: 40px;
+                font-size: 32px;
                 margin: 12px 0;
-            }
-
-            .team button {
-                margin-top: 5px;
             }
 
             .rotation {
@@ -1074,16 +1061,11 @@
             .matchup-builder {
                 grid-template-columns: 1fr;
                 gap: 10px;
-                padding: 14px;
             }
 
             .matchup-versus {
                 padding: 0;
                 text-align: center;
-            }
-
-            .matchup-builder button {
-                width: 100%;
             }
 
             .feature-grid,
@@ -1102,7 +1084,6 @@
             }
 
             .itinerary-item {
-                padding: 13px;
                 margin-top: 10px;
                 overflow-wrap: anywhere;
             }
@@ -1112,54 +1093,57 @@
             }
 
             .soccer-field {
-                min-height: 360px;
+                min-height: 330px;
                 border-width: 4px;
             }
 
             .field-goal {
-                width: 30px;
-                height: 112px;
+                width: 28px;
+                height: 100px;
             }
 
             .field-team-name {
-                font-size: clamp(17px, 6vw, 26px);
+                font-size: clamp(16px, 6vw, 24px);
             }
 
             .field-score {
-                font-size: clamp(42px, 14vw, 66px);
+                font-size: clamp(38px, 13vw, 60px);
             }
 
             .field-lineup {
-                max-width: 150px;
+                max-width: 140px;
                 margin-top: 12px;
             }
 
             .field-player {
                 padding: 5px;
-                font-size: 11px;
+                font-size: 10px;
             }
 
-            .field-summary {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
+            .field-summary,
             .queue-item {
                 align-items: flex-start;
                 flex-direction: column;
             }
 
-            /* Makes date/time controls easier to use on phones */
             input[type="date"],
             input[type="time"] {
-                min-height: 50px;
+                min-height: 46px;
             }
         }
 
-        /* Extra-small phones */
-        @media (max-width: 380px) {
-            body {
-                padding: 5px;
+        @media (max-width: 520px) {
+            .itinerary-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .itinerary-form-actions,
+            .team-actions,
+            .matchup-actions,
+            .itinerary-actions,
+            .feature-actions,
+            .event-actions {
+                grid-template-columns: 1fr;
             }
 
             .container {
@@ -1167,21 +1151,17 @@
             }
 
             h1 {
-                font-size: 25px;
+                font-size: 24px;
             }
 
             h2 {
                 font-size: 20px;
             }
 
-            input,
-            textarea,
-            select,
-            button {
-                font-size: 16px;
+            .score {
+                font-size: 28px;
             }
         }
-
 
         .mobile-only-tools {
             display: none;
