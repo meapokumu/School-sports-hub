@@ -1219,11 +1219,6 @@
     </section>
     <p id="statusMessage" class="status-message" role="status" aria-live="polite"></p>
 
-    <nav class="view-tabs" aria-label="Dashboard views">
-        <button class="view-tab active" type="button" data-view="dashboardView" aria-selected="true">Manage</button>
-        <button class="view-tab" type="button" data-view="fieldView" aria-selected="false">Field View</button>
-    </nav>
-
     <section id="dashboardView" class="view-panel">
 
     <!-- ITINERARY -->
@@ -1369,49 +1364,6 @@
         <div class="standing-table" id="standingsTable"></div>
     </section>
 
-    </section>
-
-    <section id="fieldView" class="view-panel" hidden>
-        <h2>Live Soccer Field</h2>
-        <p class="print-only">School Soccer Match Sheet</p>
-        <div id="fieldSummary" class="field-summary"></div>
-        <div id="soccerField" class="soccer-field" aria-live="polite"></div>
-        <div id="fieldControls" class="field-controls"></div>
-        <section class="feature-panel" aria-label="Live match controls">
-            <h3>Match controls</h3>
-            <span id="timerDisplay" class="timer-display">00:00</span>
-            <div class="feature-actions">
-                <button id="timerStartButton" type="button">Start Timer</button>
-                <button id="timerResetButton" type="button">Reset Timer</button>
-                <button id="printButton" type="button">Print Match Sheet</button>
-                <button id="shareButton" type="button">Share Summary</button>
-                <button id="undoButton" type="button">Undo Last Action</button>
-            </div>
-            <div class="feature-grid">
-                <label>Event team
-                    <select id="eventTeamSelect"></select>
-                </label>
-                <label>Event type
-                    <select id="eventTypeSelect">
-                        <option>Goal</option>
-                        <option>Assist</option>
-                        <option>Substitution</option>
-                        <option>Yellow card</option>
-                        <option>Red card</option>
-                    </select>
-                </label>
-                <label>Player
-                    <select id="eventPlayerSelect"></select>
-                </label>
-            </div>
-            <div class="event-actions">
-                <button id="addEventButton" type="button">Add Match Event</button>
-            </div>
-            <div id="matchEventList" class="match-event-list"></div>
-            <h3>Player statistics</h3>
-            <div id="statList" class="stat-list"></div>
-        </section>
-        <div id="fieldQueue" class="field-queue"></div>
     </section>
 
 </div>
@@ -1600,7 +1552,10 @@
 
     function setTimerDisplay() {
         let matchup = selectedMatchup();
-        document.getElementById("timerDisplay").textContent = formatTimer(matchup?.timerSeconds || 0);
+        let timerDisplay = document.getElementById("timerDisplay");
+        if (timerDisplay) {
+            timerDisplay.textContent = formatTimer(matchup?.timerSeconds || 0);
+        }
     }
 
     function ensureTeamFeatureData(team) {
@@ -2086,189 +2041,12 @@
         return `<div class="field-lineup">${playerMarkup(starters, "STARTERS")}${playerMarkup(substitutes, "SUBSTITUTES")}</div>`;
     }
 
-    function renderMatchEvents(matchup) {
-        let list = document.getElementById("matchEventList");
-        list.innerHTML = matchup.events?.length ? matchup.events.map((event, index) => `<div class="match-event"><span><strong>${escapeHTML(event.type)}</strong> - ${escapeHTML(event.player)} <small>(${escapeHTML(event.team)})</small></span><button type="button" data-event-index="${index}">Delete</button></div>`).join("") : '<p class="empty-state">No match events yet.</p>';
-        list.querySelectorAll("button").forEach(button => button.addEventListener("click", () => {
-            rememberState();
-            let eventIndex = Number(button.dataset.eventIndex);
-            let event = matchup.events[eventIndex];
-            if (event && (event.type === "Goal" || event.type === "Assist")) {
-                let stat = state.playerStats[event.team]?.[event.player];
-                if (stat) stat[event.type === "Goal" ? "goals" : "assists"] = Math.max(0, stat[event.type === "Goal" ? "goals" : "assists"] - 1);
-            }
-            if (event?.type === "Goal") {
-                if (matchup.home === event.team) matchup.homeScore = Math.max(0, matchup.homeScore - 1);
-                if (matchup.away === event.team) matchup.awayScore = Math.max(0, matchup.awayScore - 1);
-            }
-            matchup.events.splice(eventIndex, 1);
-            commit("Match event deleted.");
-        }));
-    }
-
-    function renderMatchStats(matchup) {
-        let list = document.getElementById("statList");
-        let teams = [matchup.home, matchup.away].filter(Boolean);
-        let rows = [];
-        teams.forEach(team => {
-            Object.entries(state.playerStats[team] || {}).forEach(([player, stats]) => {
-                if (stats.games || stats.goals || stats.assists || stats.minutes) rows.push(`<div class="stat-row"><span>${escapeHTML(player)} <small>${escapeHTML(team)}</small></span><span>G ${stats.goals} | A ${stats.assists} | GP ${stats.games} | Min ${stats.minutes}</span></div>`);
-            });
-        });
-        list.innerHTML = rows.length ? rows.join("") : '<p class="empty-state">Player statistics will appear after match events are added.</p>';
-    }
-
-    function updateEventPlayerOptions() {
-        let team = document.getElementById("eventTeamSelect").value;
-        let select = document.getElementById("eventPlayerSelect");
-        select.innerHTML = (state.players[team] || []).map(player => `<option value="${escapeHTML(player)}">${escapeHTML(player)}</option>`).join("");
-    }
-
-    function addMatchEvent() {
-        let matchup = selectedMatchup();
-        if (!matchup || !matchup.away) {
-            setStatus("Choose a complete matchup before adding events.");
-            return;
-        }
-        rememberState();
-        let team = document.getElementById("eventTeamSelect").value;
-        let type = document.getElementById("eventTypeSelect").value;
-        let player = document.getElementById("eventPlayerSelect").value || "Team event";
-        matchup.events = matchup.events || [];
-        matchup.events.push({type, team, player, minute: Math.floor((matchup.timerSeconds || 0) / 60)});
-        ensureTeamFeatureData(team);
-        let stat = state.playerStats[team][player];
-        if (type === "Goal") stat.goals += 1;
-        if (type === "Assist") stat.assists += 1;
-        if (type === "Substitution") stat.games += 1;
-        if (type === "Goal") {
-            if (matchup.home === team) matchup.homeScore += 1;
-            if (matchup.away === team) matchup.awayScore += 1;
-        }
-        commit(`${type} recorded.`);
-    }
-
-    function toggleTimer() {
-        let matchup = selectedMatchup();
-        if (!matchup) {
-            setStatus("Choose a matchup before starting the timer.");
-            return;
-        }
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-            document.getElementById("timerStartButton").textContent = "Start Timer";
-            return;
-        }
-        document.getElementById("timerStartButton").textContent = "Pause Timer";
-        timerInterval = window.setInterval(() => {
-            matchup.timerSeconds = (matchup.timerSeconds || 0) + 1;
-            setTimerDisplay();
-            saveState();
-        }, 1000);
-    }
-
-    function resetTimer() {
-        let matchup = selectedMatchup();
-        if (!matchup) return;
-        rememberState();
-        matchup.timerSeconds = 0;
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-        }
-        document.getElementById("timerStartButton").textContent = "Start Timer";
-        commit("Match timer reset.");
-    }
-
-    function shareSummary() {
-        let matchup = selectedMatchup();
-        if (!matchup) return;
-        let text = `${matchup.home} ${matchup.homeScore} - ${matchup.away} ${matchup.awayScore} (${matchup.completed ? "Complete" : "In progress"})`;
-        if (navigator.share) navigator.share({title: "School Soccer Match", text});
-        else if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => setStatus("Match summary copied.", false));
-        else setStatus(text, false);
-    }
-
-    function renderField() {
-        let summary = document.getElementById("fieldSummary");
-        let field = document.getElementById("soccerField");
-        let controls = document.getElementById("fieldControls");
-        let queue = document.getElementById("fieldQueue");
-        let nextIndex = state.matchups.findIndex(matchup => !matchup.completed);
-        let selectedIndex = state.selectedMatchup !== null && state.matchups[state.selectedMatchup]
-            ? state.selectedMatchup
-            : -1;
-        let displayIndex = selectedIndex >= 0 ? selectedIndex : (nextIndex >= 0 ? nextIndex : state.matchups.length - 1);
-
-        summary.innerHTML = nextIndex >= 0
-            ? `<span>Next up</span><strong>Match ${nextIndex + 1} of ${state.matchups.length}</strong>`
-            : "<span>No upcoming matchups</span>";
-        field.innerHTML = "";
-        controls.innerHTML = "";
-        queue.innerHTML = "";
-        setTimerDisplay();
-
-        if (displayIndex < 0) {
-            field.innerHTML = '<p class="empty-state">Create a matchup or reopen a completed game to use the field view.</p>';
-            document.getElementById("matchEventList").innerHTML = "";
-            document.getElementById("statList").innerHTML = "";
-            return;
-        }
-
-        let matchup = state.matchups[displayIndex];
-        let homeGoal = document.createElement("div");
-        homeGoal.className = "field-goal home";
-        homeGoal.setAttribute("aria-hidden", "true");
-        field.appendChild(homeGoal);
-
-        let awayGoal = document.createElement("div");
-        awayGoal.className = "field-goal away";
-        awayGoal.setAttribute("aria-hidden", "true");
-        field.appendChild(awayGoal);
-
-        let homeSide = document.createElement("div");
-        homeSide.className = "field-side home";
-        let homeDetails = state.teamDetails[matchup.home] || {};
-        homeSide.innerHTML = `<span class="field-label">Home side - ${escapeHTML(homeDetails.formation || "4-3-3")}</span><span class="team-badge" style="background:${escapeHTML(homeDetails.color || "#164b35")}">${escapeHTML(homeDetails.badge || matchup.home.slice(0, 1))}</span><span class="field-team-name">${escapeHTML(matchup.home)}</span><span class="field-score">${matchup.homeScore || 0}</span>${renderFieldLineup(matchup.home)}`;
-        field.appendChild(homeSide);
-
-        let awaySide = document.createElement("div");
-        awaySide.className = "field-side away";
-        awaySide.innerHTML = matchup.away
-            ? `<span class="field-label">Away side - ${escapeHTML((state.teamDetails[matchup.away] || {}).formation || "4-3-3")}</span><span class="team-badge" style="background:${escapeHTML((state.teamDetails[matchup.away] || {}).color || "#e0733c")}">${escapeHTML((state.teamDetails[matchup.away] || {}).badge || matchup.away.slice(0, 1))}</span><span class="field-team-name">${escapeHTML(matchup.away)}</span><span class="field-score">${matchup.awayScore || 0}</span>${renderFieldLineup(matchup.away)}`
-            : '<span class="field-label">Away side</span><span class="field-team-name">BYE</span><span class="field-score">-</span>';
-        field.appendChild(awaySide);
-
-        if (matchup.away) {
-            controls.innerHTML = `<button type="button">- ${escapeHTML(matchup.home)}</button><button type="button">+ ${escapeHTML(matchup.home)}</button><button type="button">- ${escapeHTML(matchup.away)}</button><button type="button">+ ${escapeHTML(matchup.away)}</button><button type="button">${matchup.completed ? "Reopen Match" : "Complete Match"}</button>`;
-            controls.children[0].addEventListener("click", () => updateMatchupScore(displayIndex, "home", -1));
-            controls.children[1].addEventListener("click", () => updateMatchupScore(displayIndex, "home", 1));
-            controls.children[2].addEventListener("click", () => updateMatchupScore(displayIndex, "away", -1));
-            controls.children[3].addEventListener("click", () => updateMatchupScore(displayIndex, "away", 1));
-            controls.children[4].addEventListener("click", () => toggleMatchup(displayIndex));
-        }
-
-        renderMatchEvents(matchup);
-        renderMatchStats(matchup);
-        document.getElementById("eventTeamSelect").innerHTML = [matchup.home, matchup.away].filter(Boolean).map(team => `<option value="${escapeHTML(team)}">${escapeHTML(team)}</option>`).join("");
-        updateEventPlayerOptions();
-
-        state.matchups.forEach((item, index) => {
-            let queueItem = document.createElement("div");
-            queueItem.className = `queue-item${index === nextIndex ? " next" : ""}`;
-            queueItem.innerHTML = `<span>${index === nextIndex ? "NEXT: " : ""}${escapeHTML(item.home)}${item.away ? ` vs ${escapeHTML(item.away)}` : " (BYE)"}</span><span>${item.homeScore || 0}${item.away ? ` - ${item.awayScore || 0}` : ""}${item.completed ? " | Complete" : ""}</span>`;
-            queue.appendChild(queueItem);
-        });
-    }
-
     function renderAll() {
         renderItinerary();
         renderTeams();
         renderTeamFeaturePanel();
         renderMatchups();
         renderStandings();
-        renderField();
     }
 
     document.getElementById("teamSearch").addEventListener("input", renderTeams);
@@ -2276,13 +2054,6 @@
     document.getElementById("detailTeamSelect").addEventListener("change", renderTeamFeaturePanel);
     document.getElementById("saveTeamDetailsButton").addEventListener("click", saveTeamDetails);
     document.getElementById("attendanceButton").addEventListener("click", markStartersPresent);
-    document.getElementById("eventTeamSelect").addEventListener("change", updateEventPlayerOptions);
-    document.getElementById("addEventButton").addEventListener("click", addMatchEvent);
-    document.getElementById("timerStartButton").addEventListener("click", toggleTimer);
-    document.getElementById("timerResetButton").addEventListener("click", resetTimer);
-    document.getElementById("undoButton").addEventListener("click", undoLastAction);
-    document.getElementById("printButton").addEventListener("click", () => window.print());
-    document.getElementById("shareButton").addEventListener("click", shareSummary);
     document.getElementById("themeButton").addEventListener("click", () => {
         state.theme = state.theme === "dark" ? "light" : "dark";
         document.body.classList.toggle("dark-mode", state.theme === "dark");
@@ -2306,17 +2077,6 @@
         state.matchups.push({home, away, homeScore: 0, awayScore: 0, completed: false, timerSeconds: 0, events: []});
         state.selectedMatchup = state.matchups.length - 1;
         commit(`${home} vs ${away} added.`);
-    });
-    document.querySelectorAll(".view-tab").forEach(tab => {
-        tab.addEventListener("click", () => {
-            document.querySelectorAll(".view-tab").forEach(otherTab => {
-                let active = otherTab === tab;
-                otherTab.classList.toggle("active", active);
-                otherTab.setAttribute("aria-selected", active ? "true" : "false");
-                document.getElementById(otherTab.dataset.view).hidden = !active;
-            });
-            if (tab.dataset.view === "fieldView") renderField();
-        });
     });
     document.getElementById("clearDataButton").addEventListener("click", () => {
         if (!confirm("Clear all teams, scores, players, itinerary, and matchups?")) return;
